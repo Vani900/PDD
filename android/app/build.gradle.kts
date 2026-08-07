@@ -31,7 +31,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:8000/\"")
+            buildConfigField("String", "BASE_URL", "\"https://charityai-api-production.up.railway.app/\"")
         }
     }
     compileOptions {
