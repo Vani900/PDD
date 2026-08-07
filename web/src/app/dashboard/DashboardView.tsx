@@ -17,27 +17,27 @@ export function DashboardView() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
-  // Bug #4 fix: use the correct /users/me/impact endpoint that now exists
+  const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('access_token'))
+
   const { data: impact, isLoading: impactLoading, error: impactError, refetch: refetchImpact } = useQuery({
     queryKey: ['impact'],
     queryFn: () => api.users.impact().then((r: any) => r.data),
-    enabled: mounted,
+    enabled: mounted && hasToken,
     staleTime: 30_000,
-    retry: 2,
+    retry: 1,
   })
 
-  // Bug #3 fix: use /donations/my for donor-specific donations
   const { data: myDonationsData, isLoading: donationsLoading } = useQuery({
     queryKey: ['my-donations'],
-    queryFn: () => api.donations.list({ page_size: 10 }).then((r: any) => r.data),
+    queryFn: () => api.donations.my({ page_size: 10 }).then((r: any) => r.data).catch(() => api.donations.list({ page_size: 10 }).then((r: any) => r.data)),
     enabled: mounted,
     staleTime: 30_000,
   })
 
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => api.notifications.list({ page_size: 5 }).then((r: any) => r.data),
-    enabled: mounted,
+    queryFn: () => api.notifications.list({ page_size: 5 }).then((r: any) => r.data).catch(() => ({ items: [] })),
+    enabled: mounted && hasToken,
     staleTime: 60_000,
   })
 
@@ -107,18 +107,31 @@ export function DashboardView() {
           <Link href="/donate" className="btn-primary">+ Make a Donation</Link>
         </motion.div>
 
-        {/* API Error Banner */}
-        {impactError && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-3 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-between gap-2">
+        {/* Auth / Guest Banner */}
+        {!hasToken ? (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-primary-500/20 to-blue-500/20 border border-primary-500/30 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">👋</span>
+              <div>
+                <p className="text-foreground text-sm font-bold">You are viewing as Guest</p>
+                <p className="text-muted-foreground text-xs">Sign in to track your personal impact score and sync donations with your account.</p>
+              </div>
+            </div>
+            <Link href="/auth/login" className="btn-primary py-2 px-4 text-xs">
+              Sign In to Sync
+            </Link>
+          </motion.div>
+        ) : impactError ? (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-3 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <p className="text-amber-300 text-xs">Could not load impact stats. The backend may be starting up.</p>
+              <p className="text-amber-300 text-xs">Connecting to backend PostgreSQL. Click retry if backend container is waking up.</p>
             </div>
-            <button onClick={() => refetchImpact()} className="flex items-center gap-1 text-amber-300 text-xs hover:text-amber-100">
-              <RefreshCw className="w-3 h-3" /> Retry
+            <button onClick={() => refetchImpact()} className="flex items-center gap-1 text-amber-300 text-xs font-bold hover:text-amber-100">
+              <RefreshCw className="w-3 h-3" /> Retry Sync
             </button>
           </motion.div>
-        )}
+        ) : null}
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

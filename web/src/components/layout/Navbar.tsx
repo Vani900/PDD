@@ -71,8 +71,21 @@ export function Navbar() {
     setMounted(true)
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll, { passive: true })
+
+    if (typeof window !== 'undefined' && !user) {
+      const token = localStorage.getItem('access_token')
+      const savedRole = localStorage.getItem('user_role') || 'donor'
+      if (token) {
+        dispatch(logout()) // reset state then set user token
+        dispatch({
+          type: 'auth/setUser',
+          payload: { id: 'current', email: 'user@charityai.org', role: savedRole, account_status: 'active' },
+        })
+      }
+    }
+
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [dispatch, user])
 
   const unreadCount = notifications.filter((n) => n.unread).length
 
