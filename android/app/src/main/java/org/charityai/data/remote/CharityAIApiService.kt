@@ -3,13 +3,20 @@ package org.charityai.data.remote
 import retrofit2.Response
 import retrofit2.http.*
 
-data class LoginRequest(val email: String, val password: String)
+// ── Auth Data Classes ────────────────────────────────────────────────────────
+data class LoginRequest(
+    val email: String,
+    val password: String
+)
+
 data class LoginResponse(
     val access_token: String,
     val refresh_token: String,
     val user_id: String,
+    val email: String? = null,
     val role: String? = "donor"
 )
+
 data class RegisterRequest(
     val first_name: String,
     val last_name: String,
@@ -17,30 +24,74 @@ data class RegisterRequest(
     val password: String,
     val role: String = "donor"
 )
+
 data class RegisterResponse(
     val user_id: String,
     val email: String,
     val message: String,
     val requires_verification: Boolean
 )
+
+// ── User Data Classes ────────────────────────────────────────────────────────
 data class UserProfileDto(
     val user_id: String,
     val email: String,
     val first_name: String,
     val last_name: String,
     val role: String,
-    val completion_percentage: Int
+    val completion_percentage: Int = 100
 )
 
 data class UserImpactDto(
-    val total_donations: Int,
-    val total_amount: Double,
-    val completed_donations: Int,
-    val active_donations: Int,
-    val impact_score: Int,
-    val level: Int,
-    val volunteer_hours: Double,
+    val total_donations: Int = 0,
+    val total_amount: Double = 0.0,
+    val completed_donations: Int = 0,
+    val active_donations: Int = 0,
+    val impact_score: Int = 0,
+    val level: Int = 1,
+    val volunteer_hours: Double = 0.0,
     val rank: String? = null
+)
+
+// ── Donation Data Classes ────────────────────────────────────────────────────
+data class DonationItemRequest(
+    val name: String,
+    val quantity: Int = 1,
+    val unit: String = "pack",
+    val condition: String = "new",
+    val estimated_value: Double = 0.0
+)
+
+data class CreateDonationRequest(
+    val donation_type: String,
+    val title: String,
+    val description: String? = null,
+    val amount: Double? = null,
+    val currency: String = "INR",
+    val pickup_city: String? = null,
+    val pickup_address: String? = null,
+    val items: List<DonationItemRequest>? = null,
+    val ngo_id: String? = null,
+    val campaign_id: String? = null
+)
+
+data class CreateDonationResponse(
+    val donation_id: String,
+    val tracking_number: String,
+    val status: String,
+    val created_at: String? = null
+)
+
+data class UpdateDonationStatusRequest(
+    val status: String,
+    val notes: String? = null
+)
+
+data class UpdateDonationStatusResponse(
+    val donation_id: String,
+    val old_status: String,
+    val new_status: String,
+    val updated_at: String? = null
 )
 
 data class DonationDto(
@@ -53,7 +104,38 @@ data class DonationDto(
     val pickup_city: String?,
     val created_at: String?
 )
-data class ListDonationsResponse(val total: Int, val items: List<DonationDto>)
+
+data class ListDonationsResponse(
+    val total: Int,
+    val items: List<DonationDto>
+)
+
+// ── NGO Requirements Data Classes ────────────────────────────────────────────
+data class CreateNgoRequirementRequest(
+    val category: String,
+    val item_name: String,
+    val quantity: Double? = null,
+    val unit: String? = null,
+    val city: String,
+    val urgency: String = "medium",
+    val description: String? = null,
+    val ngo_id: String? = null
+)
+
+data class CreateNgoRequirementResponse(
+    val requirement_id: String,
+    val status: String,
+    val message: String
+)
+
+data class RequestDonationPayload(
+    val message: String? = "NGO request from mobile app"
+)
+
+data class GenericActionResponse(
+    val message: String? = null,
+    val status: String? = null
+)
 
 data class NgoRequirementDto(
     val id: String,
@@ -68,14 +150,52 @@ data class NgoRequirementDto(
     val status: String,
     val created_at: String?
 )
-data class ListNgoRequirementsResponse(val total: Int, val items: List<NgoRequirementDto>)
 
-data class HelpRequestDto(val id: String, val need_type: String, val title: String, val status: String, val urgency_level: String, val ai_priority_score: Double?)
-data class ListHelpRequestsResponse(val total: Int, val items: List<HelpRequestDto>)
+data class ListNgoRequirementsResponse(
+    val total: Int,
+    val items: List<NgoRequirementDto>
+)
 
-data class VolunteerTaskDto(val id: String, val title: String, val task_type: String, val status: String, val points_earned: Int)
-data class ListVolunteerTasksResponse(val total: Int, val items: List<VolunteerTaskDto>)
+// ── Receiver & Volunteer Data Classes ────────────────────────────────────────
+data class CreateHelpRequestRequest(
+    val need_type: String,
+    val title: String,
+    val description: String? = null,
+    val city: String? = null
+)
 
+data class HelpRequestDto(
+    val id: String,
+    val need_type: String,
+    val title: String,
+    val status: String,
+    val urgency_level: String,
+    val ai_priority_score: Double?
+)
+
+data class ListHelpRequestsResponse(
+    val total: Int,
+    val items: List<HelpRequestDto>
+)
+
+data class CompleteTaskRequest(
+    val notes: String? = null
+)
+
+data class VolunteerTaskDto(
+    val id: String,
+    val title: String,
+    val task_type: String,
+    val status: String,
+    val points_earned: Int
+)
+
+data class ListVolunteerTasksResponse(
+    val total: Int,
+    val items: List<VolunteerTaskDto>
+)
+
+// ── CharityAI Retrofit Interface ──────────────────────────────────────────────
 interface CharityAIApiService {
     companion object {
         val BASE_URL = org.charityai.BuildConfig.BASE_URL
@@ -109,15 +229,15 @@ interface CharityAIApiService {
     @POST("api/v1/donations")
     suspend fun createDonation(
         @Header("Authorization") token: String,
-        @Body payload: Map<String, Any?>
-    ): Response<Map<String, Any>>
+        @Body payload: CreateDonationRequest
+    ): Response<CreateDonationResponse>
 
     @PATCH("api/v1/donations/{id}/status")
     suspend fun updateDonationStatus(
         @Header("Authorization") token: String,
         @Path("id") id: String,
-        @Body payload: Map<String, Any>
-    ): Response<Map<String, Any>>
+        @Body payload: UpdateDonationStatusRequest
+    ): Response<UpdateDonationStatusResponse>
 
     @GET("api/v1/ngo-requirements")
     suspend fun getNgoRequirements(
@@ -134,26 +254,33 @@ interface CharityAIApiService {
     @POST("api/v1/ngo-requirements")
     suspend fun createNgoRequirement(
         @Header("Authorization") token: String,
-        @Body payload: Map<String, Any?>
-    ): Response<Map<String, Any>>
+        @Body payload: CreateNgoRequirementRequest
+    ): Response<CreateNgoRequirementResponse>
 
     @POST("api/v1/ngo-requirements/{reqId}/request-donation/{donationId}")
     suspend fun requestDonation(
         @Header("Authorization") token: String,
         @Path("reqId") reqId: String,
         @Path("donationId") donationId: String,
-        @Body payload: Map<String, String>
-    ): Response<Map<String, Any>>
+        @Body payload: RequestDonationPayload
+    ): Response<GenericActionResponse>
 
     @GET("api/v1/receivers/help-requests")
     suspend fun getHelpRequests(@Header("Authorization") token: String): Response<ListHelpRequestsResponse>
 
     @POST("api/v1/receivers/help-requests")
-    suspend fun createHelpRequest(@Header("Authorization") token: String, @Body payload: Map<String, Any>): Response<Map<String, Any>>
+    suspend fun createHelpRequest(
+        @Header("Authorization") token: String,
+        @Body payload: CreateHelpRequestRequest
+    ): Response<GenericActionResponse>
 
     @GET("api/v1/volunteers/tasks")
     suspend fun getVolunteerTasks(@Header("Authorization") token: String): Response<ListVolunteerTasksResponse>
 
     @POST("api/v1/volunteers/tasks/{id}/complete")
-    suspend fun completeTask(@Header("Authorization") token: String, @Path("id") id: String, @Body payload: Map<String, Any>): Response<Map<String, Any>>
+    suspend fun completeTask(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body payload: CompleteTaskRequest
+    ): Response<GenericActionResponse>
 }

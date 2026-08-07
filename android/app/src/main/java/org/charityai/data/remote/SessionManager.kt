@@ -16,15 +16,31 @@ class SessionManager(context: Context) {
         private const val KEY_REFRESH = "refresh_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_ROLE = "user_role"
+        private const val KEY_USER_NAME = "user_name"
+        private const val KEY_USER_EMAIL = "user_email"
     }
 
-    fun saveSession(token: String, refresh: String, userId: String, role: String? = "donor") {
-        prefs.edit()
+    fun saveSession(token: String, refresh: String, userId: String, role: String? = "donor", name: String? = null, email: String? = null) {
+        val editor = prefs.edit()
             .putString(KEY_TOKEN, token)
             .putString(KEY_REFRESH, refresh)
             .putString(KEY_USER_ID, userId)
             .putString(KEY_ROLE, role ?: "donor")
-            .apply()
+        
+        if (!name.isNull_Empty()) {
+            editor.putString(KEY_USER_NAME, name)
+        }
+        if (!email.isNull_Empty()) {
+            editor.putString(KEY_USER_EMAIL, email)
+        }
+        editor.apply()
+    }
+
+    fun updateProfileInfo(name: String?, email: String?) {
+        val editor = prefs.edit()
+        if (!name.isNull_Empty()) editor.putString(KEY_USER_NAME, name)
+        if (!email.isNull_Empty()) editor.putString(KEY_USER_EMAIL, email)
+        editor.apply()
     }
 
     fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
@@ -35,6 +51,8 @@ class SessionManager(context: Context) {
 
     fun getRole(): String = prefs.getString(KEY_ROLE, "donor") ?: "donor"
     fun getUserId(): String? = prefs.getString(KEY_USER_ID, null)
+    fun getUserName(): String = prefs.getString(KEY_USER_NAME, "User") ?: "User"
+    fun getUserEmail(): String = prefs.getString(KEY_USER_EMAIL, "") ?: ""
 
     fun isLoggedIn(): Boolean = !getToken().isNullOrEmpty()
 
@@ -52,9 +70,9 @@ object ApiClient {
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .protocols(listOf(Protocol.HTTP_1_1, Protocol.HTTP_2))
-            .connectTimeout(20, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
     }

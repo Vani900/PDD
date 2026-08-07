@@ -133,8 +133,18 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                             if (response.isSuccessful && response.body() != null) {
                                 val body = response.body()!!
                                 val role = body.role ?: loginRole
-                                sessionManager.saveSession(body.access_token, body.refresh_token, body.user_id, role)
-                                Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
+                                var userName = body.email?.substringBefore("@") ?: "User"
+                                try {
+                                    val profileRes = ApiClient.getService().getUserProfile("Bearer ${body.access_token}")
+                                    if (profileRes.isSuccessful && profileRes.body() != null) {
+                                        val p = profileRes.body()!!
+                                        val fullName = "${p.first_name} ${p.last_name}".trim()
+                                        if (fullName.isNotBlank()) userName = fullName
+                                    }
+                                } catch (e: Exception) {}
+
+                                sessionManager.saveSession(body.access_token, body.refresh_token, body.user_id, role, userName, body.email)
+                                Toast.makeText(context, "Welcome back, $userName!", Toast.LENGTH_SHORT).show()
 
                                 if (role == "ngo_admin" || role == "ngo_staff" || role == "ngo" || loginRole == "ngo") {
                                     navController.navigate("ngo_dashboard") { popUpTo("login") { inclusive = true } }
