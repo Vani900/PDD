@@ -22,8 +22,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             CharityAITheme {
                 val navController = rememberNavController()
+                val role = sessionManager.getRole()
                 val startDestination = if (sessionManager.isLoggedIn()) {
-                    if (sessionManager.getRole() == "ngo_admin" || sessionManager.getRole() == "ngo_staff") {
+                    if (role == "ngo_admin" || role == "ngo_staff" || role == "ngo") {
                         "ngo_dashboard"
                     } else {
                         "donor_dashboard"

@@ -21,7 +21,7 @@ fun HomeScreen(navController: NavController, sessionManager: SessionManager) {
     LaunchedEffect(Unit) {
         if (sessionManager.isLoggedIn()) {
             val role = sessionManager.getRole()
-            if (role == "ngo_admin" || role == "ngo_staff") {
+            if (role == "ngo_admin" || role == "ngo_staff" || role == "ngo") {
                 navController.navigate("ngo_dashboard") { popUpTo("home") { inclusive = true } }
             } else {
                 navController.navigate("donor_dashboard") { popUpTo("home") { inclusive = true } }
