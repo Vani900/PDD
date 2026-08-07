@@ -1,0 +1,3 @@
+"""
+CharityAI Backend Package
+"""
