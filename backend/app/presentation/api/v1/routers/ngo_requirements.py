@@ -89,7 +89,6 @@ async def create_requirement(
                 organization_id=org.id,
                 user_id=current_user.id,
                 role="admin",
-                created_by=str(current_user.id),
             )
             db.add(new_member)
             await db.flush()
