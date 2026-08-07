@@ -6,10 +6,13 @@ import asyncio
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 # Set test environment so asyncpg uses NullPool
 os.environ["PYTEST_CURRENT_TEST"] = "1"
 
 from app.infrastructure.database.session import engine, Base
+
 import app.infrastructure.database.models.users  # noqa
 import app.infrastructure.database.models.donations  # noqa
 import app.infrastructure.database.models.organizations  # noqa
