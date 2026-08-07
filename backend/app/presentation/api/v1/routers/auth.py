@@ -84,6 +84,11 @@ async def register(
     if existing.scalar_one_or_none():
         raise EmailAlreadyExistsException()
 
+    # In development mode, auto-activate accounts so login works immediately
+    is_dev = settings.APP_ENV != "production"
+    initial_status = AccountStatus.ACTIVE if is_dev else AccountStatus.PENDING_VERIFICATION
+    email_verified = is_dev
+
     # Create user
     user = User(
         email=payload.email.lower(),
@@ -91,7 +96,8 @@ async def register(
         hashed_password=hash_password(payload.password),
         role=payload.role or UserRole.DONOR,
         auth_provider=AuthProvider.EMAIL,
-        account_status=AccountStatus.PENDING_VERIFICATION,
+        account_status=initial_status,
+        email_verified=email_verified,
     )
     db.add(user)
     await db.flush()
@@ -104,28 +110,36 @@ async def register(
     )
     db.add(profile)
 
-    # Generate email OTP
-    otp_code = generate_numeric_otp(6)
-    from datetime import timedelta
-    otp = OTPVerification(
-        user_id=user.id,
-        otp_type="email_verification",
-        otp_code=otp_code,
-        expires_at=datetime.now(UTC) + timedelta(minutes=10),
-    )
-    db.add(otp)
-    await db.flush()
+    if not is_dev:
+        # Generate email OTP only in production
+        otp_code = generate_numeric_otp(6)
+        from datetime import timedelta
+        otp = OTPVerification(
+            user_id=user.id,
+            otp_type="email_verification",
+            otp_code=otp_code,
+            expires_at=datetime.now(UTC) + timedelta(minutes=10),
+        )
+        db.add(otp)
+        await db.flush()
 
-    # Send verification email in background
-    background_tasks.add_task(
-        _send_verification_email, str(user.id), payload.email, otp_code
+        background_tasks.add_task(
+            _send_verification_email, str(user.id), payload.email, otp_code
+        )
+
+    await db.commit()
+
+    message = (
+        "Registration successful! Your account is active. You can log in now."
+        if is_dev
+        else "Registration successful. Please verify your email with the OTP sent."
     )
 
     return RegisterResponse(
         user_id=str(user.id),
         email=user.email,
-        message="Registration successful. Please verify your email with the OTP sent.",
-        requires_verification=True,
+        message=message,
+        requires_verification=not is_dev,
     )
 
 

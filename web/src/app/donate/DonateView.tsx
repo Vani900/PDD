@@ -1,15 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, Package, Droplets, BookOpen, Pill, Shirt, GraduationCap, Home, AlertTriangle, Armchair, Laptop,
-  ArrowRight, ArrowLeft, Check, Sparkles, MapPin, Calendar, ShieldCheck, Loader2
+  ArrowRight, ArrowLeft, Check, Loader2, Lock
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSelector } from 'react-redux'
+import type { RootState } from '@/store'
 
 const CATEGORIES = [
   { id: 'food', name: 'Food & Meals', icon: Package, emoji: '🍱', desc: 'Grain packs, cooked meals, fresh produce' },
@@ -36,6 +39,24 @@ export function DonateView() {
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdDonation, setCreatedDonation] = useState<any>(null)
+  const router = useRouter()
+
+  // Bug #2 fix: Auth guard — redirect to login if not authenticated
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated)
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-muted/30 pt-24 flex items-center justify-center">
+        <div className="card p-10 text-center max-w-sm mx-auto">
+          <Lock className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+          <h2 className="font-display font-bold text-xl mb-2">Login Required</h2>
+          <p className="text-muted-foreground text-sm mb-6">Please log in to make a donation.</p>
+          <Link href="/auth/login" className="btn-primary w-full">Go to Login</Link>
+          <Link href="/auth/register" className="btn-secondary w-full mt-2">Create Account</Link>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
@@ -56,7 +77,11 @@ export function DonateView() {
       setStep(4)
       toast.success('Donation submitted successfully!')
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to submit donation.')
+      const response = err.response?.data
+      const message = response?.detail?.message || response?.message ||
+        (typeof response?.detail === 'string' ? response.detail : null) ||
+        'Failed to submit donation. Please make sure you are logged in.'
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

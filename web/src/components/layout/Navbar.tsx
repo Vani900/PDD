@@ -286,14 +286,34 @@ export function Navbar() {
                           <Award className="w-3 h-3" /> Gold Impact Donor
                         </div>
                       </div>
-                      <Link
-                        href="/admin"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors text-foreground"
-                      >
-                        <LayoutDashboard className="w-4 h-4 text-emerald-500" />
-                        Admin Governance
-                      </Link>
+                      {user.role === 'ngo_admin' || user.role === 'ngo_staff' ? (
+                        <Link
+                          href="/ngo/dashboard"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors text-foreground"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-emerald-500" />
+                          NGO Portal
+                        </Link>
+                      ) : user.role === 'admin' || user.role === 'super_admin' ? (
+                        <Link
+                          href="/admin"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors text-foreground"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-emerald-500" />
+                          Admin Governance
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors text-foreground"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-emerald-500" />
+                          My Dashboard
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           dispatch(logout())

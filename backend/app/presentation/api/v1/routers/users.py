@@ -148,6 +148,78 @@ async def get_me(
     )
 
 
+# ── 1b. GET /users/me/impact ─────────────────────────────────────────────────
+@router.get(
+    "/me/impact",
+    summary="Get current user's donation impact statistics",
+)
+async def get_my_impact(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    from app.infrastructure.database.models.donations import Donation, DonationStatus
+
+    # Total donations count
+    total_q = await db.execute(
+        select(func.count(Donation.id)).where(
+            Donation.donor_id == current_user.id, Donation.is_deleted == False
+        )
+    )
+    total_donations = total_q.scalar_one() or 0
+
+    # Total amount donated (monetary donations)
+    amount_q = await db.execute(
+        select(func.sum(Donation.amount)).where(
+            Donation.donor_id == current_user.id, Donation.is_deleted == False
+        )
+    )
+    total_amount = float(amount_q.scalar_one() or 0.0)
+
+    # Completed donations
+    completed_q = await db.execute(
+        select(func.count(Donation.id)).where(
+            Donation.donor_id == current_user.id,
+            Donation.is_deleted == False,
+            Donation.status == DonationStatus.DISTRIBUTED,
+        )
+    )
+    completed = completed_q.scalar_one() or 0
+
+    # Active donations (pending/in-transit)
+    active_q = await db.execute(
+        select(func.count(Donation.id)).where(
+            Donation.donor_id == current_user.id,
+            Donation.is_deleted == False,
+            Donation.status.in_([DonationStatus.PENDING, DonationStatus.PICKUP_ARRANGED, DonationStatus.IN_TRANSIT]),
+        )
+    )
+    active = active_q.scalar_one() or 0
+
+    # Get profile for impact score / level
+    result = await db.execute(
+        select(User).options(selectinload(User.profile)).where(User.id == current_user.id)
+    )
+    user = result.scalar_one()
+    profile = user.profile
+
+    impact_score = getattr(profile, "impact_score", 0) or 0
+    level = getattr(profile, "level", 1) or 1
+    volunteer_hours = getattr(profile, "volunteer_hours", 0.0) or 0.0
+
+    return {
+        "total_donations": total_donations,
+        "total_amount": total_amount,
+        "completed_donations": completed,
+        "active_donations": active,
+        "impact_score": impact_score,
+        "level": level,
+        "volunteer_hours": volunteer_hours,
+        "rank": "Compassionate Giver" if total_donations >= 5 else "First Step" if total_donations > 0 else "New Member",
+    }
+
+
+
+
 # ── 2. PUT /users/me ─────────────────────────────────────────────────────────
 @router.put(
     "/me",

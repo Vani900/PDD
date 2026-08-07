@@ -2,40 +2,88 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, User, Mail, Lock, Phone, ArrowRight, Loader2 } from 'lucide-react'
+import { Heart, User, Mail, Lock, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+const PASSWORD_RULES = [
+  { test: (p: string) => p.length >= 8, label: 'At least 8 characters' },
+  { test: (p: string) => /[A-Z]/.test(p), label: 'One uppercase letter' },
+  { test: (p: string) => /[a-z]/.test(p), label: 'One lowercase letter' },
+  { test: (p: string) => /\d/.test(p), label: 'One number' },
+  { test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p), label: 'One special character' },
+]
+
 export default function RegisterView() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('donor')
   const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showPasswordRules, setShowPasswordRules] = useState(false)
   const router = useRouter()
+
+  const validatePassword = (p: string) => PASSWORD_RULES.every(r => r.test(p))
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    setErrors({})
+
+    // Frontend validation
+    const newErrors: Record<string, string> = {}
+    if (!firstName.trim()) newErrors.first_name = 'First name is required.'
+    if (!lastName.trim()) newErrors.last_name = 'Last name is required.'
+    if (!email.includes('@')) newErrors.email = 'Enter a valid email address.'
+    if (!validatePassword(password)) {
+      const failed = PASSWORD_RULES.filter(r => !r.test(password)).map(r => r.label)
+      newErrors.password = `Password needs: ${failed.join(', ')}.`
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
     setIsLoading(true)
     try {
-      await api.auth.register({
-        first_name: firstName,
-        last_name: lastName,
+      const { data } = await api.auth.register({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         email,
-        phone: phone || undefined,
         password,
         role,
       })
-      toast.success('Registration successful! Please check your email for OTP verification.')
-      router.push('/auth/login')
+      toast.success(data.message || 'Registration successful!')
+      if (data.requires_verification) {
+        router.push(`/auth/verify?user_id=${data.user_id}&email=${encodeURIComponent(email)}`)
+      } else {
+        router.push('/auth/login?registered=1')
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Registration failed. Check password requirements.')
+      const response = err.response?.data
+      if (response?.detail && Array.isArray(response.detail)) {
+        // Pydantic validation errors
+        const fieldErrors: Record<string, string> = {}
+        response.detail.forEach((d: any) => {
+          const field = d.loc?.[d.loc.length - 1] || 'general'
+          fieldErrors[field] = d.msg
+        })
+        setErrors(fieldErrors)
+        toast.error('Please fix the errors below.')
+      } else if (response?.message) {
+        toast.error(response.message)
+      } else if (response?.detail) {
+        toast.error(typeof response.detail === 'string' ? response.detail : 'Registration failed.')
+      } else {
+        toast.error('Registration failed. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -58,17 +106,38 @@ export default function RegisterView() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-xs font-medium text-white/80 mb-1">First Name</label>
-              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400" />
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                className={`w-full bg-white/10 border rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400 ${errors.first_name ? 'border-red-400' : 'border-white/20'}`}
+              />
+              {errors.first_name && <p className="text-red-400 text-xs mt-0.5">{errors.first_name}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-white/80 mb-1">Last Name</label>
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400" />
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                className={`w-full bg-white/10 border rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400 ${errors.last_name ? 'border-red-400' : 'border-white/20'}`}
+              />
+              {errors.last_name && <p className="text-red-400 text-xs mt-0.5">{errors.last_name}</p>}
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-white/80 mb-1">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={`w-full bg-white/10 border rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400 ${errors.email ? 'border-red-400' : 'border-white/20'}`}
+            />
+            {errors.email && <p className="text-red-400 text-xs mt-0.5">{errors.email}</p>}
           </div>
 
           <div>
@@ -77,13 +146,32 @@ export default function RegisterView() {
               <option value="donor">Donor (Individual)</option>
               <option value="volunteer">Volunteer</option>
               <option value="ngo_admin">NGO Organization</option>
-              <option value="corporate_user">Corporate CSR</option>
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-white/80 mb-1">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} placeholder="Min 8 chars, 1 upper, 1 special" className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400" />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setShowPasswordRules(true) }}
+              required
+              placeholder="Min 8 chars, uppercase, number, symbol"
+              className={`w-full bg-white/10 border rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400 ${errors.password ? 'border-red-400' : 'border-white/20'}`}
+            />
+            {errors.password && <p className="text-red-400 text-xs mt-0.5">{errors.password}</p>}
+            {showPasswordRules && password.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {PASSWORD_RULES.map((rule, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    {rule.test(password)
+                      ? <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0" />
+                      : <AlertCircle className="w-3 h-3 text-white/40 flex-shrink-0" />}
+                    <span className={`text-xs ${rule.test(password) ? 'text-green-400' : 'text-white/40'}`}>{rule.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button type="submit" disabled={isLoading} className="btn-primary w-full py-3 mt-2">

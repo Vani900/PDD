@@ -48,10 +48,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ── DB health check ───────────────────────────────────────────────────────
     if not await check_db_connection():
         logger.error("Database connection failed at startup!")
+    else:
+        # Auto-create any new tables (safe — won't drop existing tables)
+        try:
+            from app.infrastructure.database.session import engine, Base
+            # Import all models so their metadata is registered
+            import app.infrastructure.database.models.users  # noqa
+            import app.infrastructure.database.models.donations  # noqa
+            import app.infrastructure.database.models.organizations  # noqa
+            import app.infrastructure.database.models.core  # noqa
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables verified/created via create_all.")
+        except Exception as e:
+            logger.warning(f"create_all failed (non-critical): {e}")
 
     logger.info("CharityAI startup complete.")
     yield
     logger.info("CharityAI shutting down…")
+
 
 
 # ── App Factory ───────────────────────────────────────────────────────────────
@@ -120,6 +135,7 @@ def _register_routers(app: FastAPI) -> None:
         auth,
         corporate,
         donations,
+        ngo_requirements,
         ngos,
         notifications,
         payments,
@@ -134,6 +150,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(users.router, prefix=prefix)
     app.include_router(donations.router, prefix=prefix)
     app.include_router(ngos.router, prefix=prefix)
+    app.include_router(ngo_requirements.router, prefix=prefix)
     app.include_router(volunteers.router, prefix=prefix)
     app.include_router(receivers.router, prefix=prefix)
     app.include_router(corporate.router, prefix=prefix)

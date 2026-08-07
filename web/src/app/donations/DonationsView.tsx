@@ -20,10 +20,12 @@ function DonationsList() {
   const [search, setSearch] = useState(initialQuery)
   const [page, setPage] = useState(1)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['donations', type, status, page, search],
     queryFn: () => api.donations.list({ donation_type: type || undefined, status: status || undefined, page, page_size: 10 }).then(r => r.data),
     enabled: mounted,
+    staleTime: 30_000,
+    retry: 2,
   })
 
   return (
@@ -71,13 +73,25 @@ function DonationsList() {
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => <div key={i} className="h-20 skeleton rounded-2xl" />)}
           </div>
+        ) : error ? (
+          <div className="card p-10 text-center">
+            <p className="text-muted-foreground text-sm mb-4">Failed to load donations. The backend may be starting up.</p>
+            <button onClick={() => refetch()} className="btn-secondary text-sm">Retry</button>
+          </div>
+        ) : (data?.items || []).length === 0 ? (
+          <div className="card p-16 text-center">
+            <div className="text-5xl mb-4">📦</div>
+            <h2 className="font-semibold text-foreground mb-1">No donations available right now</h2>
+            <p className="text-muted-foreground text-sm mb-4">Be the first to donate! Your donation connects you to verified NGOs.</p>
+            <Link href="/donate" className="btn-primary">Make the First Donation</Link>
+          </div>
         ) : (
           <div className="space-y-3">
             {(data?.items || []).map((d: any) => (
               <motion.div key={d.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-900/20 text-primary-600 flex items-center justify-center font-bold text-xl flex-shrink-0">
-                    {d.donation_type === 'money' ? '💰' : d.donation_type === 'food' ? '🍱' : '❤️'}
+                    {d.donation_type === 'money' ? '💰' : d.donation_type === 'food' ? '🍱' : d.donation_type === 'blood' ? '🩸' : d.donation_type === 'clothes' ? '👕' : '❤️'}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -91,7 +105,7 @@ function DonationsList() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <div className="text-sm font-semibold text-foreground">{d.amount ? formatCurrency(d.amount) : 'Item Donation'}</div>
-                    <span className={`badge text-xs capitalize ${d.status === 'delivered' ? 'badge-success' : 'badge-primary'}`}>{d.status}</span>
+                    <span className={`badge text-xs capitalize ${d.status === 'distributed' ? 'badge-success' : 'badge-primary'}`}>{d.status}</span>
                   </div>
                   <Link href={`/donations/${d.id}`} className="btn-secondary text-xs px-3 py-2">Details <ArrowUpRight className="w-3.5 h-3.5" /></Link>
                 </div>

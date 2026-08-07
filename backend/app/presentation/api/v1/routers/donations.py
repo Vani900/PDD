@@ -91,9 +91,8 @@ async def list_donations(
     if campaign_id:
         query = query.where(Donation.campaign_id == campaign_id)
 
-    # For donors: restrict view to their own donations
-    if current_user and current_user.role == UserRole.DONOR:
-        query = query.where(Donation.donor_id == current_user.id)
+    # Note: Public list shows all non-deleted donations
+    # Authenticated donors can see all; use GET /donations/my for personal donations
 
     from sqlalchemy import asc, desc
     order_col = getattr(Donation, sort_by)
@@ -282,7 +281,46 @@ async def get_donation_qr(
 
 
 # ── 5. PUT /donations/{donation_id}/status ───────────────────────────────────
-@router.put(
+@router.get(
+    "/my",
+    summary="Get my donations (donor-specific, requires auth)",
+)
+async def get_my_donations(
+    status: Optional[DonationStatus] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    query = (
+        select(Donation)
+        .options(selectinload(Donation.items), selectinload(Donation.status_history))
+        .where(Donation.is_deleted == False, Donation.donor_id == current_user.id)
+    )
+    if status:
+        query = query.where(Donation.status == status)
+
+    from sqlalchemy import desc
+    query = query.order_by(desc(Donation.created_at))
+
+    total_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    total = total_result.scalar_one()
+
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    donations = result.scalars().all()
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size if total > 0 else 1,
+        "items": [_serialize_donation(d) for d in donations],
+    }
+
+
+# ── 5. PATCH /donations/{donation_id}/status ─────────────────────────────────
+@router.patch(
     "/{donation_id}/status",
     summary="Update donation status workflow and notify donor",
 )

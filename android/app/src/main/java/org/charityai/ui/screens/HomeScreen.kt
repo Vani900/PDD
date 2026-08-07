@@ -3,10 +3,9 @@ package org.charityai.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -14,37 +13,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import org.charityai.data.remote.SessionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, sessionManager: SessionManager) {
+    LaunchedEffect(Unit) {
+        if (sessionManager.isLoggedIn()) {
+            val role = sessionManager.getRole()
+            if (role == "ngo_admin" || role == "ngo_staff") {
+                navController.navigate("ngo_dashboard") { popUpTo("home") { inclusive = true } }
+            } else {
+                navController.navigate("donor_dashboard") { popUpTo("home") { inclusive = true } }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "CharityAI",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF25A47E)
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    }
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile")
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { },
-                icon = { Icon(Icons.Default.Favorite, contentDescription = null) },
-                text = { Text("Donate Now") },
-                containerColor = Color(0xFF25A47E),
-                contentColor = Color.White
+                title = { Text("CharityAI", fontWeight = FontWeight.Bold, color = Color(0xFF25A47E)) }
             )
         }
     ) { padding ->
@@ -52,41 +40,33 @@ fun HomeScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Welcome to CharityAI",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = "Welcome to CharityAI", fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Text(
                 text = "Connecting Hearts Through AI",
                 fontSize = 14.sp,
                 color = Color.Gray,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 32.dp)
             )
 
-            // Quick Stats Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF25A47E).copy(alpha = 0.1f))
+            Button(
+                onClick = { navController.navigate("login") },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25A47E))
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Your Impact",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "12 Donations · ₹15,400 Raised",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF25A47E)
-                    )
-                }
+                Text("Sign In to Your Hub", fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = { navController.navigate("register") },
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text("Register New Account", color = Color(0xFF25A47E), fontWeight = FontWeight.Bold)
             }
         }
     }

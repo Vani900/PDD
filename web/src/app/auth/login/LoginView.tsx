@@ -2,17 +2,20 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react'
+import { Heart, Lock, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { setUser, setTokens } from '@/store/slices/authSlice'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LoginView() {
+function LoginForm() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
+
+  const searchParams = useSearchParams()
+  const registered = searchParams?.get('registered')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,16 +28,45 @@ export default function LoginView() {
     setIsLoading(true)
     try {
       const { data } = await api.auth.login({ email, password })
+
       if (data.requires_2fa) {
         toast('2FA required', { icon: '🔑' })
         return
       }
+
       dispatch(setTokens({ accessToken: data.access_token, refreshToken: data.refresh_token }))
       dispatch(setUser({ id: data.user_id, email: data.email, role: data.role, account_status: 'active' }))
       toast.success('Welcome back!')
-      router.push('/dashboard')
+
+      // Role-based dashboard routing (Bug #5 fix)
+      const role: string = data.role || 'donor'
+      if (role === 'ngo_admin' || role === 'ngo_staff') {
+        router.push('/ngo/dashboard')
+      } else if (role === 'admin' || role === 'super_admin') {
+        router.push('/admin')
+      } else if (role === 'volunteer') {
+        router.push('/volunteers/dashboard')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Invalid email or password.')
+      const response = err.response?.data
+      if (response?.detail) {
+        const detail = response.detail
+        if (typeof detail === 'object' && detail.error_code === 'ACCOUNT_INACTIVE') {
+          toast.error('Account not verified. Please check your email for the OTP.')
+        } else if (typeof detail === 'object' && detail.message) {
+          toast.error(detail.message)
+        } else if (typeof detail === 'string') {
+          toast.error(detail)
+        } else {
+          toast.error('Invalid email or password.')
+        }
+      } else if (response?.message) {
+        toast.error(response.message)
+      } else {
+        toast.error('Login failed. Check your email and password.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -53,12 +85,26 @@ export default function LoginView() {
           <p className="text-white/60 text-xs mt-1">Log in to your CharityAI account</p>
         </div>
 
+        {registered && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-3 rounded-xl bg-green-500/20 border border-green-400/30 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <p className="text-green-300 text-xs">Account created! You can log in now.</p>
+          </motion.div>
+        )}
+
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-white/80 mb-1">Email Address</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-white/40 absolute left-3 top-3" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@example.com" className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="name@example.com"
+                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400"
+              />
             </div>
           </div>
 
@@ -66,11 +112,18 @@ export default function LoginView() {
             <label className="block text-xs font-medium text-white/80 mb-1">Password</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-white/40 absolute left-3 top-3" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-primary-400"
+              />
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading} className="btn-primary w-full py-3 mt-2">
+          <button type="submit" disabled={isLoading} className="btn-primary w-full py-3 mt-2 flex items-center justify-center gap-2">
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />} Sign In
           </button>
         </form>
@@ -80,5 +133,14 @@ export default function LoginView() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+import { Suspense } from 'react'
+export default function LoginView() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-hero" />}>
+      <LoginForm />
+    </Suspense>
   )
 }

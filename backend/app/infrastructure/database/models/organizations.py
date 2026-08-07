@@ -295,3 +295,136 @@ class CampaignMilestone(Base, UUIDMixin, TimestampMixin):
     achieved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="milestones")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NGO REQUIREMENT & DONATION MATCHING MODELS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class RequirementStatus(str, Enum):
+    OPEN = "open"
+    PARTIALLY_MATCHED = "partially_matched"
+    MATCHED = "matched"
+    ACCEPTED = "accepted"
+    FULFILLED = "fulfilled"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class RequirementUrgency(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class NGORequirement(Base, BaseModel):
+    """
+    An NGO's stated need/requirement for donations.
+    Donors can see these and offer matching donations.
+    """
+
+    __tablename__ = "ngo_requirements"
+    __table_args__ = (
+        Index("ix_ngo_req_ngo_id", "ngo_id"),
+        Index("ix_ngo_req_category", "category"),
+        Index("ix_ngo_req_status", "status"),
+        Index("ix_ngo_req_city", "city"),
+        Index("ix_ngo_req_created_at", "created_at"),
+    )
+
+    ngo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE")
+    )
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT")
+    )
+
+    # What is needed
+    category: Mapped[str] = mapped_column(String(30), nullable=False)
+    # "food", "money", "clothes", "medicine", "books", "education", "shelter", "electronics", "emergency"
+    item_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    quantity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    unit: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "kg", "items", "INR", "liters"
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Location
+    city: Mapped[str] = mapped_column(String(100), nullable=False)
+    state: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    country: Mapped[str] = mapped_column(String(100), default="India")
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Priority
+    urgency: Mapped[RequirementUrgency] = mapped_column(
+        String(20), nullable=False, default=RequirementUrgency.MEDIUM
+    )
+    needed_by: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Status
+    status: Mapped[RequirementStatus] = mapped_column(
+        String(30), nullable=False, default=RequirementStatus.OPEN
+    )
+
+    # Matching metadata
+    matched_donation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("donations.id", ondelete="SET NULL"), nullable=True
+    )
+    matched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    fulfilled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    ngo: Mapped["Organization"] = relationship("Organization")
+
+
+class MatchStatus(str, Enum):
+    REQUESTED = "requested"    # NGO requested this donation
+    PENDING_DONOR = "pending_donor"  # Waiting for donor acceptance
+    ACCEPTED = "accepted"      # Donor accepted the request
+    REJECTED = "rejected"      # Donor rejected the request
+    COMPLETED = "completed"    # Donation received
+    CANCELLED = "cancelled"
+
+
+class DonationMatch(Base, BaseModel):
+    """
+    Links a donor's donation to an NGO requirement.
+    Created when an NGO requests a donation OR when system auto-matches.
+    """
+
+    __tablename__ = "donation_matches"
+    __table_args__ = (
+        Index("ix_match_donation_id", "donation_id"),
+        Index("ix_match_requirement_id", "requirement_id"),
+        Index("ix_match_ngo_id", "ngo_id"),
+        Index("ix_match_status", "status"),
+    )
+
+    donation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("donations.id", ondelete="CASCADE")
+    )
+    requirement_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("ngo_requirements.id", ondelete="SET NULL"), nullable=True
+    )
+    ngo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE")
+    )
+    donor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+
+    status: Mapped[MatchStatus] = mapped_column(
+        String(30), nullable=False, default=MatchStatus.REQUESTED
+    )
+
+    # NGO message when requesting
+    request_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Donor response message
+    response_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    ngo: Mapped["Organization"] = relationship("Organization")
+
