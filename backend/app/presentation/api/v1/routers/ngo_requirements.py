@@ -185,7 +185,6 @@ async def get_my_requirements(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    from app.infrastructure.database.models.organizations import OrganizationMember
     member_result = await db.execute(
         select(OrganizationMember).where(OrganizationMember.user_id == current_user.id)
     )
@@ -357,8 +356,6 @@ async def accept_match(
         donation.ngo_id = match.ngo_id
 
     # Notify the NGO's admin user
-    # Find NGO admin to notify
-    from app.infrastructure.database.models.organizations import OrganizationMember
     members_result = await db.execute(
         select(OrganizationMember).where(
             OrganizationMember.organization_id == match.ngo_id,
