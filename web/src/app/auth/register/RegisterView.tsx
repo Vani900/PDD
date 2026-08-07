@@ -81,7 +81,8 @@ export default function RegisterView() {
           fieldErrors[field] = d.msg
         })
         setErrors(fieldErrors)
-        toast.error('Please check field validation errors.')
+        const firstMsg = data.detail[0]?.msg || 'Please check field validation errors.'
+        toast.error(`Validation Error: ${firstMsg}`)
       } else {
         const msg = data?.message || (typeof data?.detail === 'string' ? data.detail : data?.detail?.message) || 'Registration failed. Please try again.'
         toast.error(msg)
