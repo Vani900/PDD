@@ -68,22 +68,23 @@ export default function RegisterView() {
         router.push('/auth/login?registered=1')
       }
     } catch (err: any) {
-      const response = err.response?.data
-      if (response?.detail && Array.isArray(response.detail)) {
-        // Pydantic validation errors
+      const data = err.response?.data
+      const status = err.response?.status
+
+      if (status === 409 || data?.error_code === 'EMAIL_ALREADY_EXISTS') {
+        toast.error('An account with this email already exists. Please log in!')
+        setTimeout(() => router.push('/auth/login'), 2000)
+      } else if (data?.detail && Array.isArray(data.detail)) {
         const fieldErrors: Record<string, string> = {}
-        response.detail.forEach((d: any) => {
+        data.detail.forEach((d: any) => {
           const field = d.loc?.[d.loc.length - 1] || 'general'
           fieldErrors[field] = d.msg
         })
         setErrors(fieldErrors)
-        toast.error('Please fix the errors below.')
-      } else if (response?.message) {
-        toast.error(response.message)
-      } else if (response?.detail) {
-        toast.error(typeof response.detail === 'string' ? response.detail : 'Registration failed.')
+        toast.error('Please check field validation errors.')
       } else {
-        toast.error('Registration failed. Please try again.')
+        const msg = data?.message || (typeof data?.detail === 'string' ? data.detail : data?.detail?.message) || 'Registration failed. Please try again.'
+        toast.error(msg)
       }
     } finally {
       setIsLoading(false)
