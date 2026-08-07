@@ -10,7 +10,7 @@ services:
     runtime: docker
     dockerContext: .
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: free
     region: singapore
     healthCheckPath: /health
     envVars:
@@ -34,7 +34,7 @@ services:
   - type: web
     name: charityai-web
     runtime: node
-    plan: starter
+    plan: free
     region: singapore
     buildCommand: cd web && npm install && npm run build
     startCommand: cd web && npm start
@@ -57,7 +57,7 @@ services:
   # ── 3. Managed Redis Service ────────────────────────────────────────────────
   - type: redis
     name: charityai-redis
-    plan: starter
+    plan: free
     region: singapore
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
@@ -67,7 +67,7 @@ databases:
   - name: charityai-postgres
     databaseName: charityai
     user: charityai_user
-    plan: starter
+    plan: free
     region: singapore
     postgresMajorVersion: "16"
 
