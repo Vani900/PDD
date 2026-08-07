@@ -142,10 +142,16 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                                     navController.navigate("donor_dashboard") { popUpTo("login") { inclusive = true } }
                                 }
                             } else {
-                                Toast.makeText(context, "Login failed: Check credentials", Toast.LENGTH_LONG).show()
+                                val errStr = response.errorBody()?.string() ?: ""
+                                val msg = if (errStr.contains("invalid", ignoreCase = true) || response.code() == 401) {
+                                    "Invalid email or password"
+                                } else {
+                                    "Login failed. Please check credentials."
+                                }
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Network error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Network error: ${e.localizedMessage ?: "Unable to connect"}", Toast.LENGTH_LONG).show()
                         } finally {
                             isLoading = false
                         }

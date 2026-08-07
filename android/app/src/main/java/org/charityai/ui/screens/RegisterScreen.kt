@@ -127,10 +127,18 @@ fun RegisterScreen(navController: NavController) {
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                                 navController.navigate("login") { popUpTo("register") { inclusive = true } }
                             } else {
-                                Toast.makeText(context, "Registration failed. Check password requirements.", Toast.LENGTH_LONG).show()
+                                val errStr = response.errorBody()?.string() ?: ""
+                                val msg = if (errStr.contains("uppercase", ignoreCase = true)) {
+                                    "Password must contain at least 1 uppercase letter (e.g. Pass1234)"
+                                } else if (errStr.contains("already exists", ignoreCase = true) || errStr.contains("registered", ignoreCase = true)) {
+                                    "Email already registered. Please log in!"
+                                } else {
+                                    "Registration failed. Password requires 8+ chars & 1 uppercase letter."
+                                }
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Connection error: ${e.localizedMessage ?: "Unable to reach server"}", Toast.LENGTH_LONG).show()
                         } finally {
                             isLoading = false
                         }
