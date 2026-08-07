@@ -23,7 +23,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://charityai-api.onrender.com/\"")
+            buildConfigField("String", "BASE_URL", "\"https://pdd-1-27dy.onrender.com/\"")
         }
         release {
             isMinifyEnabled = true
@@ -31,7 +31,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://charityai-api.onrender.com/\"")
+            buildConfigField("String", "BASE_URL", "\"https://pdd-1-27dy.onrender.com/\"")
         }
     }
     compileOptions {
