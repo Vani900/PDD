@@ -1,0 +1,48 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "HTTP Request Rate (req/sec)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "rate(http_requests_total[1m])", "legendFormat": "{{method}} {{handler}}" }]
+    },
+    {
+      "title": "API Response Latency (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95 ms" }]
+    },
+    {
+      "title": "Database Active Connections",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "targets": [{ "expr": "pg_stat_activity_count", "legendFormat": "Connections" }]
+    },
+    {
+      "title": "Active WebSocket Connections",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 },
+      "targets": [{ "expr": "websocket_active_connections", "legendFormat": "WebSockets" }]
+    },
+    {
+      "title": "Donation Velocity (donations/hour)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+      "targets": [{ "expr": "sum(increase(donations_created_total[1h]))", "legendFormat": "Donations" }]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["charityai", "production"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "CharityAI Production Platform Telemetry",
+  "uid": "charityai-prod-dash"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "CharityAI – AI-Powered Smart Donation Ecosystem",
+  "short_name": "CharityAI",
+  "description": "India's most intelligent donation platform connecting Donors, NGOs, Volunteers, and Receivers.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f2027",
+  "theme_color": "#25a47e",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

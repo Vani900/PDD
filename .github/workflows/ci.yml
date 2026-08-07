@@ -1,0 +1,59 @@
+name: CharityAI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest pytest-cov httpx
+          cd backend && pip install -e .
+      - name: Lint with Ruff
+        run: ruff check backend/app
+      - name: Run pytest with coverage
+        run: |
+          cd backend && pytest --cov=app --cov-report=xml
+
+  web-lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: web/package.json
+      - name: Install web dependencies
+        run: cd web && npm ci --legacy-peer-deps
+      - name: Type check
+        run: cd web && npm run type-check
+      - name: Build Next.js
+        run: cd web && npm run build
+
+  docker-build-and-push:
+    needs: [backend-lint-and-test, web-lint-and-build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: charityai/backend:latest
