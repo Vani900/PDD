@@ -23,7 +23,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://pdd-1-27dy.onrender.com/\"")
+            buildConfigField("String", "BASE_URL", "\"https://charityai-api-production.up.railway.app/\"")
         }
         release {
             isMinifyEnabled = true

@@ -81,7 +81,8 @@ fun RegisterScreen(navController: NavController) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password (min 8 chars)") },
+                label = { Text("Password") },
+                supportingText = { Text("8+ chars · uppercase · lowercase · number · special (!@#)", fontSize = 11.sp, color = Color.Gray) },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -128,12 +129,20 @@ fun RegisterScreen(navController: NavController) {
                                 navController.navigate("login") { popUpTo("register") { inclusive = true } }
                             } else {
                                 val errStr = response.errorBody()?.string() ?: ""
-                                val msg = if (errStr.contains("uppercase", ignoreCase = true)) {
-                                    "Password must contain at least 1 uppercase letter (e.g. Pass1234)"
-                                } else if (errStr.contains("already exists", ignoreCase = true) || errStr.contains("registered", ignoreCase = true)) {
-                                    "Email already registered. Please log in!"
-                                } else {
-                                    "Registration failed. Password requires 8+ chars & 1 uppercase letter."
+                                val msg = when {
+                                    errStr.contains("uppercase", ignoreCase = true) ->
+                                        "Password needs an uppercase letter (A-Z)"
+                                    errStr.contains("lowercase", ignoreCase = true) ->
+                                        "Password needs a lowercase letter (a-z)"
+                                    errStr.contains("digit", ignoreCase = true) ->
+                                        "Password needs a number (0-9)"
+                                    errStr.contains("special", ignoreCase = true) ->
+                                        "Password needs a special character (!, @, #, $...)"
+                                    errStr.contains("already", ignoreCase = true) || errStr.contains("exists", ignoreCase = true) ->
+                                        "Email already registered. Please log in!"
+                                    errStr.contains("password", ignoreCase = true) ->
+                                        "Password: 8+ chars, A-Z, a-z, 0-9 & special char required"
+                                    else -> "Registration failed (${response.code()}). Please check all fields."
                                 }
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
