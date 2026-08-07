@@ -101,4 +101,5 @@ dist/
 build/
 *.whl
 *.tsbuildinfo
+pgdata/
 
