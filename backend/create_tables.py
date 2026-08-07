@@ -1,22 +1,26 @@
 """
-One-time script to create NGO requirement tables using SQLAlchemy create_all.
-Run from backend/ with: python create_tables.py
+CharityAI – Table Creation Script (Backend Package)
 """
 import asyncio
+import importlib
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Ensure script directory is in python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 # Set test environment so asyncpg uses NullPool
 os.environ["PYTEST_CURRENT_TEST"] = "1"
 
-from app.infrastructure.database.session import engine, Base
+session = importlib.import_module("app.infrastructure.database.session")
+engine, Base = session.engine, session.Base
 
-import app.infrastructure.database.models.users  # noqa
-import app.infrastructure.database.models.donations  # noqa
-import app.infrastructure.database.models.organizations  # noqa
-import app.infrastructure.database.models.core  # noqa
+importlib.import_module("app.infrastructure.database.models.users")
+importlib.import_module("app.infrastructure.database.models.donations")
+importlib.import_module("app.infrastructure.database.models.organizations")
+importlib.import_module("app.infrastructure.database.models.core")
 
 
 async def create_tables() -> None:

@@ -1,8 +1,8 @@
 """
-CharityAI – Table Creation Forwarder Script
-Run from project root or backend/ directory.
+CharityAI – Table Creation Script
 """
 import asyncio
+import importlib
 import os
 import sys
 
@@ -14,13 +14,14 @@ if backend_dir not in sys.path:
 # Set test environment so asyncpg uses NullPool
 os.environ["PYTEST_CURRENT_TEST"] = "1"
 
-from app.infrastructure.database.session import engine, Base
-import app.infrastructure.database.models.users  # noqa
-import app.infrastructure.database.models.donations  # noqa
-import app.infrastructure.database.models.organizations  # noqa
-import app.infrastructure.database.models.core  # noqa
+# Dynamic imports prevent static linter path warnings when script is executed outside backend package
+session = importlib.import_module("app.infrastructure.database.session")
+engine, Base = session.engine, session.Base
 
-
+importlib.import_module("app.infrastructure.database.models.users")
+importlib.import_module("app.infrastructure.database.models.donations")
+importlib.import_module("app.infrastructure.database.models.organizations")
+importlib.import_module("app.infrastructure.database.models.core")
 
 
 async def create_tables() -> None:
