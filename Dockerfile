@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpq-dev \
     libmagic1 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    gobject-introspection \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://install.python-poetry.org | python3 - \
@@ -28,7 +31,7 @@ WORKDIR /app
 FROM base AS dependencies
 
 COPY backend/pyproject.toml backend/poetry.lock* ./
-RUN poetry install --no-root --no-interaction --no-ansi
+RUN poetry install --no-root --no-interaction --no-ansi --without dev
 
 # ── Production Builder ────────────────────────────────────────────────────────
 FROM dependencies AS production-builder
@@ -45,6 +48,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libmagic1 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -64,4 +69,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["sh", "-c", "gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --workers 2 --bind 0.0.0.0:${PORT:-8000} --timeout 120 --keepalive 5 --access-logfile - --error-logfile -"]
-
