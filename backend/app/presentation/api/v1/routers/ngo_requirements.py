@@ -70,8 +70,9 @@ async def create_requirement(
         org_res = await db.execute(select(Organization).where(Organization.slug == org_slug))
         org = org_res.scalar_one_or_none()
         if not org:
+            org_name = current_user.email.split('@')[0] if current_user.email else "NGO"
             org = Organization(
-                name=f"{current_user.full_name}'s NGO",
+                name=f"{org_name}'s NGO",
                 slug=org_slug,
                 org_type=OrganizationType.NGO,
                 status=OrganizationStatus.VERIFIED,
