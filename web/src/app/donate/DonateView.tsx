@@ -186,25 +186,210 @@ export function DonateView() {
               <p className="text-muted-foreground text-sm mb-6">Tell us more about your {CATEGORIES.find(c => c.id === category)?.name} contribution.</p>
 
               <div className="space-y-4 mb-8">
-                {category === 'money' ? (
+                {/* 1. MONEY CATEGORY */}
+                {category === 'money' && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">Amount (INR)</label>
+                    <label className="block text-sm font-medium mb-1">Contribution Amount (INR)</label>
                     <div className="grid grid-cols-4 gap-2 mb-3">
                       {['500', '1000', '2500', '5000'].map((val) => (
-                        <button key={val} onClick={() => setAmount(val)} className={`py-2 text-sm font-semibold rounded-xl border ${amount === val ? 'bg-primary-500 text-white border-primary-500' : 'bg-background border-border'}`}>₹{val}</button>
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setAmount(val)}
+                          className={`py-2.5 text-sm font-bold rounded-xl border transition-all ${
+                            amount === val
+                              ? 'bg-primary-500 text-white border-primary-500 shadow-md'
+                              : 'bg-background border-border text-foreground hover:bg-muted/50'
+                          }`}
+                        >
+                          ₹{val}
+                        </button>
                       ))}
                     </div>
-                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="input-field" placeholder="Enter custom amount" />
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-muted-foreground text-sm font-bold">₹</span>
+                      <input
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        className="input-field pl-8"
+                        placeholder="Enter custom amount"
+                      />
+                    </div>
                   </div>
-                ) : (
+                )}
+
+                {/* 2. BLOOD CATEGORY */}
+                {category === 'blood' && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Title / Item Summary</label>
-                      <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. 10 kg Rice & 5 kg Pulses" className="input-field" />
+                      <label className="block text-sm font-medium mb-2">Select Blood Group</label>
+                      <div className="grid grid-cols-4 gap-2 mb-3">
+                        {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                          <button
+                            key={bg}
+                            type="button"
+                            onClick={() => setTitle(`Blood Group ${bg}`)}
+                            className={`py-2 text-xs font-bold rounded-xl border ${
+                              title.includes(bg)
+                                ? 'bg-red-500 text-white border-red-500 shadow-md'
+                                : 'bg-background border-border text-foreground hover:bg-muted/50'
+                            }`}
+                          >
+                            🩸 {bg}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Detailed Description</label>
-                      <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Describe the item condition, quantity, expiry date..." className="input-field resize-none" />
+                      <label className="block text-sm font-medium mb-1">Units Available / Hospital Name</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. 2 Units O+ at Manipal Hospital"
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Medical Notes / Urgency</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={2}
+                        placeholder="Donor availability, recent health clearance, hospital contact person..."
+                        className="input-field resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* 3. FOOD CATEGORY */}
+                {category === 'food' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Food Item & Quantity</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. 50 kg Rice, 20 kg Pulses or 100 Cooked Meal Packets"
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Food Details (Type, Cooked Date / Expiry)</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={2}
+                        placeholder="State if raw ration, packaged dry food, or freshly cooked meals with prepared time..."
+                        className="input-field resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* 4. CLOTHES CATEGORY */}
+                {category === 'clothes' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Apparel Type & Quantity</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. 15 Pair Men's Shirts & 10 Winter Blankets"
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Sizes, Age Group & Condition</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={2}
+                        placeholder="Gently used, washed, folded. Suitable for kids age 5-12 or adults..."
+                        className="input-field resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* 5. MEDICINE CATEGORY */}
+                {category === 'medicine' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Medicine Name & Strips/Quantity</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Paracetamol 500mg (10 Strips) & Insulin Vials"
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Expiry Date & Storage Instructions</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={2}
+                        placeholder="Expiry date (must be > 3 months), sealed packaging, refrigeration requirements..."
+                        className="input-field resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* 6. BOOKS CATEGORY */}
+                {category === 'books' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Book Title / Grade Level & Quantity</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Class 10 NCERT Science & Math Sets (25 Books)"
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Subject & Educational Level</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={2}
+                        placeholder="Primary school, high school, competitive exams (JEE/NEET), or storybooks..."
+                        className="input-field resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* 7. ELECTRONICS & OTHER CATEGORIES */}
+                {category !== 'money' && category !== 'blood' && category !== 'food' && category !== 'clothes' && category !== 'medicine' && category !== 'books' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Device / Item Title</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Dell Core i5 Laptop for online learning"
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Working Condition & Specifications</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={2}
+                        placeholder="Describe device specs, chargers included, battery health, and working status..."
+                        className="input-field resize-none"
+                      />
                     </div>
                   </>
                 )}

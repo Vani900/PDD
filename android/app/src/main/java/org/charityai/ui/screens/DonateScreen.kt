@@ -66,30 +66,143 @@ fun DonateScreen(navController: NavController, sessionManager: SessionManager) {
                 }
             }
 
-            if (category == "money") {
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text("Amount (INR)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            } else {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Item Title (e.g. 10 kg Rice)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description & Condition") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false
-                )
+            when (category) {
+                "money" -> {
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { amount = it },
+                        label = { Text("Contribution Amount (INR)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                "blood" -> {
+                    Text("Select Blood Group", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("A+", "B+", "O+", "AB+").forEach { bg ->
+                            FilterChip(
+                                selected = title.contains(bg),
+                                onClick = { title = "Blood Group $bg" },
+                                label = { Text("🩸 $bg", fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("A-", "B-", "O-", "AB-").forEach { bg ->
+                            FilterChip(
+                                selected = title.contains(bg),
+                                onClick = { title = "Blood Group $bg" },
+                                label = { Text("🩸 $bg", fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Units & Hospital Name") },
+                        placeholder = { Text("e.g. 2 Units O+ at Manipal Hospital") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Medical Urgency / Contact Notes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
+                    )
+                }
+                "food" -> {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Food Item & Quantity") },
+                        placeholder = { Text("e.g. 50 kg Rice, 20 kg Pulses or 100 Cooked Meals") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Food Details (Type, Cooked/Prepared Time)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
+                    )
+                }
+                "clothes" -> {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Apparel Type & Quantity") },
+                        placeholder = { Text("e.g. 15 Pair Shirts & 10 Winter Blankets") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Sizes, Age Group & Condition") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
+                    )
+                }
+                "medicine" -> {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Medicine Name & Strips") },
+                        placeholder = { Text("e.g. Paracetamol 500mg (10 Strips)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Expiry Date & Packaging Notes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
+                    )
+                }
+                "books" -> {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Book Title & Quantity") },
+                        placeholder = { Text("e.g. Class 10 NCERT Science & Math Sets (25 Books)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Subject & Educational Grade Level") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
+                    )
+                }
+                else -> {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Item Title / Device Name") },
+                        placeholder = { Text("e.g. Dell Core i5 Laptop for online learning") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Description & Specifications") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))

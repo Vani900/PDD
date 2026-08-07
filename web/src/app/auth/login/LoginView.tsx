@@ -17,6 +17,7 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const registered = searchParams?.get('registered')
 
+  const [loginRole, setLoginRole] = useState<'donor' | 'ngo'>('donor')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -34,21 +35,31 @@ function LoginForm() {
         return
       }
 
-      dispatch(setTokens({ accessToken: data.access_token, refreshToken: data.refresh_token }))
-      dispatch(setUser({ id: data.user_id, email: data.email, role: data.role, account_status: 'active' }))
-      toast.success('Welcome back!')
-
-      // Role-based dashboard routing (Bug #5 fix)
-      const role: string = data.role || 'donor'
-      if (role === 'ngo_admin' || role === 'ngo_staff') {
-        router.push('/ngo/dashboard')
-      } else if (role === 'admin' || role === 'super_admin') {
-        router.push('/admin')
-      } else if (role === 'volunteer') {
-        router.push('/volunteers/dashboard')
-      } else {
-        router.push('/dashboard')
+      // Save token & user in state & localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('access_token', data.access_token)
+        localStorage.setItem('refresh_token', data.refresh_token)
+        localStorage.setItem('user_role', data.role || loginRole)
       }
+
+      dispatch(setTokens({ accessToken: data.access_token, refreshToken: data.refresh_token }))
+      dispatch(setUser({ id: data.user_id, email: data.email, role: data.role || loginRole, account_status: 'active' }))
+      toast.success(`Welcome back as ${loginRole === 'ngo' ? 'NGO Partner' : 'Donor'}!`)
+
+      // Role-based dashboard routing
+      const userRole: string = data.role || loginRole
+      const targetPath = (userRole === 'ngo_admin' || userRole === 'ngo_staff' || userRole === 'ngo' || loginRole === 'ngo')
+        ? '/ngo/dashboard'
+        : userRole === 'admin' || userRole === 'super_admin'
+        ? '/admin'
+        : '/dashboard'
+
+      router.push(targetPath)
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname === '/auth/login') {
+          window.location.href = targetPath
+        }
+      }, 300)
     } catch (err: any) {
       const response = err.response?.data
       if (response?.detail) {
@@ -72,6 +83,7 @@ function LoginForm() {
     }
   }
 
+
   if (!mounted) return null
 
   return (
@@ -82,13 +94,35 @@ function LoginForm() {
             <Heart className="w-6 h-6 text-white fill-white" />
           </div>
           <h1 className="text-2xl font-display font-bold text-white">Welcome Back</h1>
-          <p className="text-white/60 text-xs mt-1">Log in to your CharityAI account</p>
+          <p className="text-white/60 text-xs mt-1">Select your account type to continue</p>
+
+          {/* Role Tabs */}
+          <div className="grid grid-cols-2 gap-2 mt-4 p-1 bg-white/10 rounded-xl border border-white/10">
+            <button
+              type="button"
+              onClick={() => setLoginRole('donor')}
+              className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                loginRole === 'donor' ? 'bg-primary-500 text-white shadow-md' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              ❤️ Donor Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginRole('ngo')}
+              className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                loginRole === 'ngo' ? 'bg-primary-500 text-white shadow-md' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              🏢 NGO Partner Login
+            </button>
+          </div>
         </div>
 
         {registered && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-3 rounded-xl bg-green-500/20 border border-green-400/30 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-            <p className="text-green-300 text-xs">Account created! You can log in now.</p>
+            <p className="text-green-300 text-xs">Account created! Log in to access your dashboard.</p>
           </motion.div>
         )}
 
