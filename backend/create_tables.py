@@ -19,7 +19,7 @@ import app.infrastructure.database.models.core  # noqa
 async def create_tables() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("✅ All tables created/verified successfully.")
+    print("[OK] All tables created/verified successfully.")
     await engine.dispose()
 
 

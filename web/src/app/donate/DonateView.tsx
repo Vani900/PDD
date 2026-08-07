@@ -28,9 +28,12 @@ const CATEGORIES = [
   { id: 'electronics', name: 'Digital Devices', icon: Laptop, emoji: '💻', desc: 'Laptops & tablets for online learning' },
 ]
 
+import { useQuery } from '@tanstack/react-query'
+
 export function DonateView() {
   const [step, setStep] = useState(1)
   const [category, setCategory] = useState('food')
+  const [selectedNgoReq, setSelectedNgoReq] = useState<any>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('1000')
@@ -41,8 +44,15 @@ export function DonateView() {
   const [createdDonation, setCreatedDonation] = useState<any>(null)
   const router = useRouter()
 
-  // Bug #2 fix: Auth guard — redirect to login if not authenticated
+  // Auth guard
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated)
+
+  // Real matching query: Fetch open NGO requirements matching selected category
+  const { data: matchingNgoReqs, isLoading: matchingLoading } = useQuery({
+    queryKey: ['matching-ngo-reqs', category],
+    queryFn: () => api.ngoRequirements.list({ category, status: 'open', page_size: 5 }).then(r => r.data),
+    enabled: isAuthenticated,
+  })
 
   if (!isAuthenticated) {
     return (
@@ -123,6 +133,45 @@ export function DonateView() {
                     <div className="text-xs text-muted-foreground line-clamp-2">{c.desc}</div>
                   </button>
                 ))}
+              </div>
+
+              {/* Real PostgreSQL NGO Matching Section */}
+              <div className="mb-8 p-4 rounded-2xl bg-muted/40 border border-border">
+                <h3 className="font-semibold text-sm text-foreground mb-2 flex items-center gap-2">
+                  <span>🏢</span> Verified NGOs Requesting {CATEGORIES.find(c => c.id === category)?.name}
+                </h3>
+                {matchingLoading ? (
+                  <div className="text-xs text-muted-foreground">Searching database for active NGO requests...</div>
+                ) : (matchingNgoReqs?.items || []).length > 0 ? (
+                  <div className="space-y-2 mt-3">
+                    {(matchingNgoReqs.items as any[]).map((req: any) => (
+                      <div
+                        key={req.id}
+                        onClick={() => {
+                          setSelectedNgoReq(req)
+                          setTitle(`${req.item_name} (${req.quantity ? req.quantity + ' ' + (req.unit || '') : 'Requested'})`)
+                        }}
+                        className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
+                          selectedNgoReq?.id === req.id
+                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
+                            : 'border-border bg-card hover:bg-muted/60'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-bold text-foreground">{req.ngo_name}</div>
+                          <div className="text-muted-foreground mt-0.5">
+                            Requesting: <strong className="text-foreground">{req.item_name}</strong> {req.quantity ? `(${req.quantity} ${req.unit || ''})` : ''} · 📍 {req.city}
+                          </div>
+                        </div>
+                        <span className="badge badge-primary text-[10px] uppercase">{selectedNgoReq?.id === req.id ? 'Selected' : 'Select'}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    No active NGO requests found for this category currently. Your donation will be listed publicly for any verified NGO to claim.
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end">
