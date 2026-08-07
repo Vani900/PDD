@@ -31,7 +31,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"http://172.23.28.61:8000/\"")
+            buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:8000/\"")
         }
     }
     compileOptions {
