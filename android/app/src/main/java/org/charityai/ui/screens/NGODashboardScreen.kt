@@ -1,9 +1,11 @@
 package org.charityai.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExitToApp
@@ -23,6 +25,10 @@ import org.charityai.data.remote.ApiClient
 import org.charityai.data.remote.DonationDto
 import org.charityai.data.remote.NgoRequirementDto
 import org.charityai.data.remote.SessionManager
+import org.charityai.ui.theme.EmeraldPrimary
+import org.charityai.ui.theme.StatusAmber
+import org.charityai.ui.theme.TextMuted
+import org.charityai.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +59,7 @@ fun NGODashboardScreen(navController: NavController, sessionManager: SessionMana
                     openDonations = donRes.body()?.items ?: emptyList()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error loading data", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Error syncing with PostgreSQL", Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
             }
@@ -65,118 +71,208 @@ fun NGODashboardScreen(navController: NavController, sessionManager: SessionMana
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("NGO Hub", fontWeight = FontWeight.Bold, color = Color(0xFF25A47E)) },
+                title = { Text("NGO Operations Hub", fontWeight = FontWeight.Bold, color = EmeraldPrimary) },
                 actions = {
-                    IconButton(onClick = { loadData() }) { Icon(Icons.Default.Refresh, contentDescription = "Refresh") }
+                    IconButton(onClick = { loadData() }) { Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = TextPrimary) }
                     IconButton(onClick = {
                         sessionManager.clearSession()
                         navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                    }) { Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out") }
-                }
+                    }) { Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out", tint = TextPrimary) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { navController.navigate("create_requirement") },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Post Demand") },
-                containerColor = Color(0xFF25A47E),
+                text = { Text("Post Requirement", fontWeight = FontWeight.Bold) },
+                containerColor = EmeraldPrimary,
                 contentColor = Color.White
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF25A47E))
+            item { Spacer(modifier = Modifier.height(4.dp)) }
+
+            // 1. NGO Stat Cards
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Active Demands", fontSize = 11.sp, color = TextMuted)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${requirements.size}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = EmeraldPrimary
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Open Supplies", fontSize = 11.sp, color = TextMuted)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${openDonations.size}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = StatusAmber
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 2. Active NGO Requirements List
+            item {
+                Text(
+                    text = "📋 Your Posted Requirements (${requirements.size})",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = TextPrimary
+                )
+            }
+
+            if (requirements.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("No requirements posted yet", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Text("Tap 'Post Requirement' to state what your NGO needs", fontSize = 12.sp, color = TextMuted)
+                        }
+                    }
                 }
             } else {
-                Text("NGO Requirements (${requirements.size})", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 8.dp))
-
-                if (requirements.isEmpty()) {
-                    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("No requirements posted yet", fontSize = 14.sp, color = Color.Gray)
-                            Text("Tap 'Post Demand' to state what your NGO needs", fontSize = 12.sp, color = Color.Gray)
-                        }
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.height(200.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(requirements) { req ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(req.item_name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text("Category: ${req.category} · 📍 ${req.city}", fontSize = 12.sp, color = Color.Gray)
-                                    }
-                                    Text(req.urgency.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Red)
-                                }
+                items(requirements) { req ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(req.item_name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                Text("Category: ${req.category} · 📍 ${req.city}", fontSize = 11.sp, color = TextMuted)
                             }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Available Donor Contributions (${openDonations.size})", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 8.dp))
-
-                if (openDonations.isEmpty()) {
-                    Text("No unassigned donor donations at this time.", fontSize = 12.sp, color = Color.Gray)
-                } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(openDonations) { don ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(don.title ?: don.donation_type, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text("📍 ${don.pickup_city ?: "India"} · Type: ${don.donation_type}", fontSize = 12.sp, color = Color.Gray)
-                                    }
-                                    Button(
-                                        onClick = {
-                                            val token = sessionManager.getAuthHeader() ?: return@Button
-                                            if (requirements.isEmpty()) {
-                                                Toast.makeText(context, "Post a requirement first", Toast.LENGTH_SHORT).show()
-                                                return@Button
-                                            }
-                                            val reqId = requirements.first().id
-                                            scope.launch {
-                                                try {
-                                                    val res = ApiClient.getService().requestDonation(token, reqId, don.id, mapOf("message" to "NGO request from mobile app"))
-                                                    if (res.isSuccessful) {
-                                                        Toast.makeText(context, "Request sent to donor!", Toast.LENGTH_SHORT).show()
-                                                        loadData()
-                                                    } else {
-                                                        Toast.makeText(context, "Failed to request", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                } catch (e: Exception) {
-                                                    Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25A47E)),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                                    ) {
-                                        Text("Request", fontSize = 12.sp)
-                                    }
-                                }
+                            Surface(
+                                color = Color.Red.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = req.urgency.uppercase(),
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
                         }
                     }
                 }
             }
+
+            // 3. Open Donor Contributions matching NGO demands
+            item {
+                Text(
+                    text = "🎁 Available Donor Contributions (${openDonations.size})",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            if (openDonations.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = "No unassigned donor contributions at this time.",
+                            fontSize = 12.sp,
+                            color = TextMuted,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+            } else {
+                items(openDonations) { don ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(don.title ?: don.donation_type, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                Text("📍 ${don.pickup_city ?: "India"} · Type: ${don.donation_type.uppercase()}", fontSize = 11.sp, color = TextMuted)
+                            }
+                            Button(
+                                onClick = {
+                                    val token = sessionManager.getAuthHeader() ?: return@Button
+                                    if (requirements.isEmpty()) {
+                                        Toast.makeText(context, "Post a requirement first", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    val reqId = requirements.first().id
+                                    scope.launch {
+                                        try {
+                                            val res = ApiClient.getService().requestDonation(token, reqId, don.id, mapOf("message" to "NGO request from mobile app"))
+                                            if (res.isSuccessful) {
+                                                Toast.makeText(context, "Request sent to donor!", Toast.LENGTH_SHORT).show()
+                                                loadData()
+                                            } else {
+                                                Toast.makeText(context, "Failed to request", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Request", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(64.dp)) }
         }
     }
 }

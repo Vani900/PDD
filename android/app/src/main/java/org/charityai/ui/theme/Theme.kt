@@ -1,33 +1,30 @@
 package org.charityai.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val LightColorScheme = lightColorScheme(
-    primary = Primary500,
-    secondary = Accent500,
-    background = Color(0xFFF8FAFC),
-    surface = Color.White,
-)
-
 private val DarkColorScheme = darkColorScheme(
-    primary = Primary500,
-    secondary = Accent500,
+    primary = EmeraldPrimary,
+    onPrimary = Color.White,
+    primaryContainer = EmeraldDark,
+    secondary = BlueAccent,
+    tertiary = PurpleAccent,
     background = BackgroundDark,
-    surface = CardDark,
+    surface = SurfaceDark,
+    surfaceVariant = CardDark,
+    onBackground = TextPrimary,
+    onSurface = TextPrimary,
+    outline = BorderDark,
 )
 
 @Composable
 fun CharityAITheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = DarkColorScheme,
         content = content
     )
 }

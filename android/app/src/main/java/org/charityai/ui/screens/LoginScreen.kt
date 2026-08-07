@@ -1,7 +1,9 @@
 package org.charityai.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +21,9 @@ import kotlinx.coroutines.launch
 import org.charityai.data.remote.ApiClient
 import org.charityai.data.remote.LoginRequest
 import org.charityai.data.remote.SessionManager
+import org.charityai.ui.theme.EmeraldPrimary
+import org.charityai.ui.theme.TextMuted
+import org.charityai.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +31,7 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    var loginRole by remember { mutableStateOf("donor") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -33,9 +39,11 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sign In", fontWeight = FontWeight.Bold, color = Color(0xFF25A47E)) }
+                title = { Text("Sign In", fontWeight = FontWeight.Bold, color = EmeraldPrimary) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -46,17 +54,48 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Welcome to CharityAI",
-                fontSize = 24.sp,
+                text = "Welcome Back",
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = TextPrimary
             )
             Text(
-                text = "Log in to access your donation hub",
-                fontSize = 14.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 24.dp)
+                text = "Select your account type to continue",
+                fontSize = 13.sp,
+                color = TextMuted,
+                modifier = Modifier.padding(bottom = 20.dp)
             )
+
+            // Role selection tabs matching Web
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 20.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(12.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                FilterChip(
+                    selected = loginRole == "donor",
+                    onClick = { loginRole = "donor" },
+                    label = { Text("❤️ Donor Login", fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+                    modifier = Modifier.weight(1f).padding(end = 4.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = EmeraldPrimary,
+                        selectedLabelColor = Color.White
+                    )
+                )
+                FilterChip(
+                    selected = loginRole == "ngo",
+                    onClick = { loginRole = "ngo" },
+                    label = { Text("🏢 NGO Partner", fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+                    modifier = Modifier.weight(1f).padding(start = 4.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = EmeraldPrimary,
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
 
             OutlinedTextField(
                 value = email,
@@ -64,7 +103,8 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                 label = { Text("Email Address") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -75,7 +115,8 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
             )
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -91,11 +132,11 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                             val response = ApiClient.getService().login(LoginRequest(email.trim(), password))
                             if (response.isSuccessful && response.body() != null) {
                                 val body = response.body()!!
-                                val role = body.role ?: "donor"
+                                val role = body.role ?: loginRole
                                 sessionManager.saveSession(body.access_token, body.refresh_token, body.user_id, role)
                                 Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
 
-                                if (role == "ngo_admin" || role == "ngo_staff") {
+                                if (role == "ngo_admin" || role == "ngo_staff" || role == "ngo" || loginRole == "ngo") {
                                     navController.navigate("ngo_dashboard") { popUpTo("login") { inclusive = true } }
                                 } else {
                                     navController.navigate("donor_dashboard") { popUpTo("login") { inclusive = true } }
@@ -110,8 +151,11 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25A47E)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
                 enabled = !isLoading
             ) {
                 if (isLoading) {
@@ -124,7 +168,7 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
             Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(onClick = { navController.navigate("register") }) {
-                Text("Don't have an account? Register free", color = Color(0xFF25A47E))
+                Text("Don't have an account? Register free", color = EmeraldPrimary)
             }
         }
     }
