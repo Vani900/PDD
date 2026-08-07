@@ -2,8 +2,10 @@ package org.charityai.data.remote
 
 import android.content.Context
 import android.content.SharedPreferences
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 class SessionManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("charityai_prefs", Context.MODE_PRIVATE)
@@ -45,10 +47,20 @@ class SessionManager(context: Context) {
 object ApiClient {
     private var service: CharityAIApiService? = null
 
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
+    }
+
     fun getService(): CharityAIApiService {
         if (service == null) {
             val retrofit = Retrofit.Builder()
                 .baseUrl(CharityAIApiService.BASE_URL)
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
             service = retrofit.create(CharityAIApiService::class.java)

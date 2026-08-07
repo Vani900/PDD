@@ -30,7 +30,7 @@ fun DonateScreen(navController: NavController, sessionManager: SessionManager) {
     var pickupAddress by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
-    val categories = listOf("food", "money", "clothes", "medicine", "books", "shelter")
+    val categories = listOf("food", "money", "blood", "clothes", "medicine", "books", "other")
 
     Scaffold(
         topBar = {
@@ -47,8 +47,8 @@ fun DonateScreen(navController: NavController, sessionManager: SessionManager) {
             verticalArrangement = Arrangement.Top
         ) {
             Text("Donation Category", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                categories.take(3).forEach { cat ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                categories.take(4).forEach { cat ->
                     FilterChip(
                         selected = category == cat,
                         onClick = { category = cat },
@@ -56,8 +56,8 @@ fun DonateScreen(navController: NavController, sessionManager: SessionManager) {
                     )
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                categories.drop(3).forEach { cat ->
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                categories.drop(4).forEach { cat ->
                     FilterChip(
                         selected = category == cat,
                         onClick = { category = cat },
