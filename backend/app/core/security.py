@@ -24,13 +24,16 @@ _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__round
 
 
 def hash_password(password: str) -> str:
-    """Hash a plain-text password using bcrypt."""
-    return str(_pwd_context.hash(password))
+    """Hash a plain-text password using bcrypt.
+    bcrypt has a hard 72-byte limit; we truncate to stay within it.
+    """
+    return str(_pwd_context.hash(password.encode("utf-8")[:72].decode("utf-8", errors="ignore")))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain-text password against its bcrypt hash."""
-    return bool(_pwd_context.verify(plain_password, hashed_password))
+    truncated = plain_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    return bool(_pwd_context.verify(truncated, hashed_password))
 
 
 # ── JWT Token Management ──────────────────────────────────────────────────────
