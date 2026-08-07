@@ -129,7 +129,7 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                     isLoading = true
                     scope.launch {
                         try {
-                            val response = ApiClient.getService().login(LoginRequest(email.trim(), password))
+                            val response = ApiClient.getService().login(LoginRequest(email.trim().lowercase(), password))
                             if (response.isSuccessful && response.body() != null) {
                                 val body = response.body()!!
                                 val role = body.role ?: loginRole

@@ -80,7 +80,7 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ) -> RegisterResponse:
     # Check for existing email
-    existing = await db.execute(select(User).where(User.email == payload.email.lower()))
+    existing = await db.execute(select(User).where(User.email == payload.email.strip().lower()))
     if existing.scalar_one_or_none():
         raise EmailAlreadyExistsException()
 
@@ -96,7 +96,7 @@ async def register(
 
     # Create user
     user = User(
-        email=payload.email.lower(),
+        email=payload.email.strip().lower(),
         phone=payload.phone,
         hashed_password=hash_password(payload.password),
         role=payload.role or UserRole.DONOR,
@@ -177,7 +177,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     result = await db.execute(
-        select(User).where(User.email == payload.email.lower(), User.is_deleted == False)
+        select(User).where(User.email == payload.email.strip().lower(), User.is_deleted == False)
     )
     user = result.scalar_one_or_none()
 

@@ -53,16 +53,17 @@ export default function RegisterView() {
 
     setIsLoading(true)
     try {
+      const cleanEmail = email.trim().toLowerCase()
       const { data } = await api.auth.register({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
-        email,
+        email: cleanEmail,
         password,
         role,
       })
       toast.success(data.message || 'Registration successful!')
       if (data.requires_verification) {
-        router.push(`/auth/verify?user_id=${data.user_id}&email=${encodeURIComponent(email)}`)
+        router.push(`/auth/verify?user_id=${data.user_id}&email=${encodeURIComponent(cleanEmail)}`)
       } else {
         router.push('/auth/login?registered=1')
       }

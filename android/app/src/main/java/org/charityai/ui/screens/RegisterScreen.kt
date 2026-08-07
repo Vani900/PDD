@@ -121,7 +121,7 @@ fun RegisterScreen(navController: NavController) {
                     scope.launch {
                         try {
                             val response = ApiClient.getService().register(
-                                RegisterRequest(firstName.trim(), lastName.trim(), email.trim(), password, role)
+                                RegisterRequest(firstName.trim(), lastName.trim(), email.trim().lowercase(), password, role)
                             )
                             if (response.isSuccessful && response.body() != null) {
                                 val msg = response.body()?.message ?: "Registration successful!"

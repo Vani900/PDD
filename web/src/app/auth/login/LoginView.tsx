@@ -27,30 +27,53 @@ function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    const cleanEmail = email.trim().toLowerCase()
     try {
-      const { data } = await api.auth.login({ email, password })
+      const { data } = await api.auth.login({ email: cleanEmail, password })
 
       if (data.requires_2fa) {
         toast('2FA required', { icon: '🔑' })
         return
       }
 
+      const serverRole: string = data.role || (loginRole === 'ngo' ? 'ngo_admin' : 'donor')
+
       // Save token & user in state & localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('access_token', data.access_token)
         localStorage.setItem('refresh_token', data.refresh_token)
-        localStorage.setItem('user_role', data.role || loginRole)
+        localStorage.setItem('user_role', serverRole)
       }
 
       dispatch(setTokens({ accessToken: data.access_token, refreshToken: data.refresh_token }))
-      dispatch(setUser({ id: data.user_id, email: data.email, role: data.role || loginRole, account_status: 'active' }))
-      toast.success(`Welcome back as ${loginRole === 'ngo' ? 'NGO Partner' : 'Donor'}!`)
+      dispatch(setUser({ id: data.user_id, email: data.email || cleanEmail, role: serverRole, account_status: 'active' }))
+      toast.success(`Welcome back!`)
 
-      // Role-based dashboard routing
-      const userRole: string = data.role || loginRole
-      const targetPath = (userRole === 'ngo_admin' || userRole === 'ngo_staff' || userRole === 'ngo' || loginRole === 'ngo')
+      // Fetch user profile to populate full profile in store
+      api.users.me().then((res: any) => {
+        if (res?.data) {
+          const u = res.data
+          dispatch(setUser({
+            id: u.user_id,
+            email: u.email,
+            role: u.role,
+            account_status: u.account_status,
+            profile: {
+              first_name: u.first_name,
+              last_name: u.last_name,
+              avatar_url: u.avatar_url,
+              city: u.city,
+              impact_score: u.impact_score,
+              level: u.level,
+            }
+          }))
+        }
+      }).catch(() => {})
+
+      // Role-based dashboard routing based on ACTUAL user role in database
+      const targetPath = (serverRole === 'ngo_admin' || serverRole === 'ngo_staff' || serverRole === 'ngo')
         ? '/ngo/dashboard'
-        : userRole === 'admin' || userRole === 'super_admin'
+        : (serverRole === 'admin' || serverRole === 'super_admin')
         ? '/admin'
         : '/dashboard'
 
