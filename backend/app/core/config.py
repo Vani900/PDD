@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # ── Application ──────────────────────────────────────────────────────────
     APP_NAME: str = "CharityAI"
     APP_ENV: Environment = Environment.DEVELOPMENT
-    APP_VERSION: str = "1.0.0"
+    APP_VERSION: str = "1.0.1"
     APP_SECRET_KEY: str = "dev-secret-key-charityai-2026-super-secure-32chars"
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"

@@ -18,6 +18,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
+RUN find . -name "*.pyc" -delete -o -name "__pycache__" -delete
 
 EXPOSE 8000
 
