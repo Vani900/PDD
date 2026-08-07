@@ -82,9 +82,9 @@ def create_app() -> FastAPI:
             "Connecting Donors, NGOs, Volunteers, and Receivers through AI."
         ),
         version=settings.APP_VERSION,
-        docs_url="/api/docs" if not settings.is_production else None,
-        redoc_url="/api/redoc" if not settings.is_production else None,
-        openapi_url="/api/openapi.json" if not settings.is_production else None,
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+        openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
 
@@ -189,7 +189,7 @@ def _register_error_handlers(app: FastAPI) -> None:
             content={
                 "error": True,
                 "error_code": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred. Our team has been notified.",
+                "message": f"Unhandled error: {type(exc).__name__}: {str(exc)}",
             },
         )
 
