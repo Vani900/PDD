@@ -55,30 +55,48 @@ async def create_requirement(
     if not member and current_user.role not in (UserRole.NGO_ADMIN, UserRole.NGO_STAFF, UserRole.SUPER_ADMIN, UserRole.ADMIN):
         raise HTTPException(status_code=403, detail={"message": "You must be an NGO member to create requirements."})
 
+    ngo_id: uuid.UUID | None = None
+
     ngo_id_str = payload.get("ngo_id")
     if ngo_id_str:
         ngo_id = uuid.UUID(ngo_id_str)
     elif member:
         ngo_id = member.organization_id
-    elif current_user.role in (UserRole.NGO_ADMIN, UserRole.NGO_STAFF, UserRole.SUPER_ADMIN, UserRole.ADMIN):
-        # Auto-create or fetch default NGO organization for independent NGO user
-        from app.infrastructure.database.models.organizations import Organization, OrganizationStatus
+    else:
+        # Auto-create or fetch default NGO organization for NGO user
+        from app.infrastructure.database.models.organizations import Organization, OrganizationStatus, OrganizationMember, OrganizationRole
         org_slug = f"org-user-{current_user.id}"
         org_res = await db.execute(select(Organization).where(Organization.slug == org_slug))
         org = org_res.scalar_one_or_none()
         if not org:
             org = Organization(
-                name=f"{current_user.full_name}'s Organization",
+                name=f"{current_user.full_name}'s NGO",
                 slug=org_slug,
                 org_type=OrganizationType.NGO,
                 status=OrganizationStatus.VERIFIED,
+                email=current_user.email,
+                phone=current_user.phone or "9999999999",
+                city=payload.get("city", "Bangalore"),
+                country="India",
                 created_by=str(current_user.id),
             )
             db.add(org)
             await db.flush()
+
+            # Create member record
+            new_member = OrganizationMember(
+                organization_id=org.id,
+                user_id=current_user.id,
+                role=OrganizationRole.ADMIN,
+                created_by=str(current_user.id),
+            )
+            db.add(new_member)
+            await db.flush()
+
         ngo_id = org.id
-    else:
-        raise HTTPException(status_code=400, detail={"message": "ngo_id is required or user must be an NGO member."})
+
+    if not ngo_id:
+        raise HTTPException(status_code=400, detail={"message": "Unable to resolve NGO organization ID."})
 
     req = NGORequirement(
         ngo_id=ngo_id,
