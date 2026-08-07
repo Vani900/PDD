@@ -21,7 +21,6 @@ from app.infrastructure.database.models.organizations import (
     NGORequirement,
     Organization,
     OrganizationMember,
-    OrganizationRole,
     OrganizationStatus,
     OrganizationType,
     RequirementStatus,
@@ -89,7 +88,7 @@ async def create_requirement(
             new_member = OrganizationMember(
                 organization_id=org.id,
                 user_id=current_user.id,
-                role=OrganizationRole.ADMIN,
+                role="admin",
                 created_by=str(current_user.id),
             )
             db.add(new_member)
