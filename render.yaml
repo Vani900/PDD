@@ -8,8 +8,8 @@ services:
   - type: web
     name: charityai-api
     runtime: docker
-    dockerContext: ./backend
-    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
     target: production
     plan: starter
     region: singapore # Change to your preferred region (e.g., oregon, frankfurt, singapore)
