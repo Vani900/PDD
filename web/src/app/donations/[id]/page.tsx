@@ -1,11 +1,22 @@
-import React from 'react'
+'use client'
+
+import React, { useState, useEffect } from 'react'
 import { DonationDetailView } from './DonationDetailView'
 
-export const dynamic = 'force-dynamic'
+export default function DonationDetailPage({ params }: { params: any }) {
+  const [id, setId] = useState<string>('')
 
-export default async function DonationDetailPage({ params }: { params: any }) {
-  const resolvedParams = params && typeof params.then === 'function' ? await params : params
-  const donationId = resolvedParams?.id || ''
-  return <DonationDetailView donationId={donationId} />
+  useEffect(() => {
+    Promise.resolve(params).then((resolved) => {
+      if (resolved?.id) setId(resolved.id)
+    })
+  }, [params])
+
+  if (!id) {
+    return <div className="min-h-screen bg-muted/30 pt-24" />
+  }
+
+  return <DonationDetailView donationId={id} />
 }
+
 

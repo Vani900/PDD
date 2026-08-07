@@ -1,10 +1,22 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
 import NGODetailView from './NGODetailView'
 
-export const dynamic = 'force-dynamic'
+export default function NGODetailPage({ params }: { params: any }) {
+  const [id, setId] = useState<string>('')
 
-export default async function NGODetailPage({ params }: { params: any }) {
-  const resolvedParams = params && typeof params.then === 'function' ? await params : params
-  const ngoId = resolvedParams?.id || ''
-  return <NGODetailView ngoId={ngoId} />
+  useEffect(() => {
+    Promise.resolve(params).then((resolved) => {
+      if (resolved?.id) setId(resolved.id)
+    })
+  }, [params])
+
+  if (!id) {
+    return <div className="min-h-screen bg-muted/30 pt-24" />
+  }
+
+  return <NGODetailView ngoId={id} />
 }
+
 
