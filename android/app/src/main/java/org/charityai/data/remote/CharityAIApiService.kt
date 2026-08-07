@@ -40,7 +40,7 @@ data class UserImpactDto(
     val impact_score: Int,
     val level: Int,
     val volunteer_hours: Double,
-    val rank: String
+    val rank: String? = null
 )
 
 data class DonationDto(

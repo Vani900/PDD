@@ -60,8 +60,25 @@ async def create_requirement(
         ngo_id = uuid.UUID(ngo_id_str)
     elif member:
         ngo_id = member.organization_id
+    elif current_user.role in (UserRole.NGO_ADMIN, UserRole.NGO_STAFF, UserRole.SUPER_ADMIN, UserRole.ADMIN):
+        # Auto-create or fetch default NGO organization for independent NGO user
+        from app.infrastructure.database.models.organizations import Organization, OrganizationStatus
+        org_slug = f"org-user-{current_user.id}"
+        org_res = await db.execute(select(Organization).where(Organization.slug == org_slug))
+        org = org_res.scalar_one_or_none()
+        if not org:
+            org = Organization(
+                name=f"{current_user.full_name}'s Organization",
+                slug=org_slug,
+                org_type=OrganizationType.NGO,
+                status=OrganizationStatus.VERIFIED,
+                created_by=str(current_user.id),
+            )
+            db.add(org)
+            await db.flush()
+        ngo_id = org.id
     else:
-        raise HTTPException(status_code=400, detail={"message": "ngo_id is required."})
+        raise HTTPException(status_code=400, detail={"message": "ngo_id is required or user must be an NGO member."})
 
     req = NGORequirement(
         ngo_id=ngo_id,

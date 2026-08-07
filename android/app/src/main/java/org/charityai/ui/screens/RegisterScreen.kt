@@ -129,7 +129,28 @@ fun RegisterScreen(navController: NavController) {
                                 navController.navigate("login") { popUpTo("register") { inclusive = true } }
                             } else {
                                 val errStr = response.errorBody()?.string() ?: ""
-                                val msg = when {
+                                val parsedMsg = try {
+                                    val jsonObj = org.json.JSONObject(errStr)
+                                    if (jsonObj.has("message")) {
+                                        jsonObj.getString("message")
+                                    } else if (jsonObj.has("detail")) {
+                                        val detailObj = jsonObj.get("detail")
+                                        if (detailObj is org.json.JSONArray) {
+                                            val list = mutableListOf<String>()
+                                            for (i in 0 until detailObj.length()) {
+                                                val item = detailObj.optJSONObject(i)
+                                                if (item != null && item.has("msg")) {
+                                                    list.add(item.getString("msg"))
+                                                }
+                                            }
+                                            list.joinToString("; ")
+                                        } else {
+                                            detailObj.toString()
+                                        }
+                                    } else null
+                                } catch (e: Exception) { null }
+
+                                val msg = parsedMsg ?: when {
                                     errStr.contains("uppercase", ignoreCase = true) ->
                                         "Password needs an uppercase letter (A-Z)"
                                     errStr.contains("lowercase", ignoreCase = true) ->

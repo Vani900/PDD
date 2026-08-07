@@ -221,7 +221,82 @@ async def create_donation(
     }
 
 
-# ── 3. GET /donations/{donation_id} ──────────────────────────────────────────
+# ── 3. GET /donations/my ─────────────────────────────────────────────────────
+@router.get(
+    "/my",
+    summary="Get my donations (donor-specific, requires auth)",
+)
+async def get_my_donations(
+    status: Optional[DonationStatus] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    query = (
+        select(Donation)
+        .options(selectinload(Donation.items), selectinload(Donation.status_history))
+        .where(Donation.is_deleted == False, Donation.donor_id == current_user.id)
+    )
+    if status:
+        query = query.where(Donation.status == status)
+
+    from sqlalchemy import desc
+    query = query.order_by(desc(Donation.created_at))
+
+    total_result = await db.execute(select(func.count()).select_from(query.subquery()))
+    total = total_result.scalar_one()
+
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    donations = result.scalars().all()
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size if total > 0 else 1,
+        "items": [_serialize_donation(d) for d in donations],
+    }
+
+
+# ── 4. GET /donations/stats/overview ─────────────────────────────────────────
+@router.get(
+    "/stats/overview",
+    summary="Donation statistics overview",
+)
+async def donation_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    base_where = Donation.is_deleted == False
+    if current_user.role == UserRole.DONOR:
+        base_where = and_(base_where, Donation.donor_id == current_user.id)
+
+    total = await db.execute(select(func.count(Donation.id)).where(base_where))
+    by_type = await db.execute(
+        select(Donation.donation_type, func.count(Donation.id))
+        .where(base_where)
+        .group_by(Donation.donation_type)
+    )
+    by_status = await db.execute(
+        select(Donation.status, func.count(Donation.id))
+        .where(base_where)
+        .group_by(Donation.status)
+    )
+    total_amount = await db.execute(
+        select(func.sum(Donation.amount)).where(base_where)
+    )
+
+    return {
+        "total_donations": total.scalar_one(),
+        "total_amount": float(total_amount.scalar_one() or 0),
+        "by_type": dict(by_type.all()),
+        "by_status": dict(by_status.all()),
+    }
+
+
+# ── 5. GET /donations/{donation_id} ──────────────────────────────────────────
 @router.get(
     "/{donation_id}",
     summary="Get donation detail with tracking timeline and items",
@@ -280,46 +355,7 @@ async def get_donation_qr(
     }
 
 
-# ── 5. PUT /donations/{donation_id}/status ───────────────────────────────────
-@router.get(
-    "/my",
-    summary="Get my donations (donor-specific, requires auth)",
-)
-async def get_my_donations(
-    status: Optional[DonationStatus] = None,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    query = (
-        select(Donation)
-        .options(selectinload(Donation.items), selectinload(Donation.status_history))
-        .where(Donation.is_deleted == False, Donation.donor_id == current_user.id)
-    )
-    if status:
-        query = query.where(Donation.status == status)
-
-    from sqlalchemy import desc
-    query = query.order_by(desc(Donation.created_at))
-
-    total_result = await db.execute(select(func.count()).select_from(query.subquery()))
-    total = total_result.scalar_one()
-
-    query = query.offset((page - 1) * page_size).limit(page_size)
-    result = await db.execute(query)
-    donations = result.scalars().all()
-
-    return {
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "pages": (total + page_size - 1) // page_size if total > 0 else 1,
-        "items": [_serialize_donation(d) for d in donations],
-    }
-
-
-# ── 5. PATCH /donations/{donation_id}/status ─────────────────────────────────
+# ── 6. PATCH /donations/{donation_id}/status ─────────────────────────────────
 @router.patch(
     "/{donation_id}/status",
     summary="Update donation status workflow and notify donor",
@@ -418,40 +454,7 @@ async def verify_qr(
     }
 
 
-# ── 7. GET /donations/stats/overview ─────────────────────────────────────────
-@router.get(
-    "/stats/overview",
-    summary="Donation statistics overview",
-)
-async def donation_stats(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    base_where = Donation.is_deleted == False
-    if current_user.role == UserRole.DONOR:
-        base_where = and_(base_where, Donation.donor_id == current_user.id)
-
-    total = await db.execute(select(func.count(Donation.id)).where(base_where))
-    by_type = await db.execute(
-        select(Donation.donation_type, func.count(Donation.id))
-        .where(base_where)
-        .group_by(Donation.donation_type)
-    )
-    by_status = await db.execute(
-        select(Donation.status, func.count(Donation.id))
-        .where(base_where)
-        .group_by(Donation.status)
-    )
-    total_amount = await db.execute(
-        select(func.sum(Donation.amount)).where(base_where)
-    )
-
-    return {
-        "total_donations": total.scalar_one(),
-        "total_amount": float(total_amount.scalar_one() or 0),
-        "by_type": dict(by_type.all()),
-        "by_status": dict(by_status.all()),
-    }
+# (stats/overview moved above /{donation_id} — see above)
 
 
 def _serialize_donation(d: Donation, detailed: bool = False) -> dict:
