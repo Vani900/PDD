@@ -20,6 +20,9 @@ from app.infrastructure.database.models.organizations import (
     MatchStatus,
     NGORequirement,
     Organization,
+    OrganizationMember,
+    OrganizationRole,
+    OrganizationStatus,
     OrganizationType,
     RequirementStatus,
     RequirementUrgency,
@@ -46,7 +49,6 @@ async def create_requirement(
         )
     )
     # Get NGO where the user is a member
-    from app.infrastructure.database.models.organizations import OrganizationMember
     member_result = await db.execute(
         select(OrganizationMember).where(OrganizationMember.user_id == current_user.id)
     )
@@ -64,7 +66,6 @@ async def create_requirement(
         ngo_id = member.organization_id
     else:
         # Auto-create or fetch default NGO organization for NGO user
-        from app.infrastructure.database.models.organizations import Organization, OrganizationStatus, OrganizationMember, OrganizationRole
         org_slug = f"org-user-{current_user.id}"
         org_res = await db.execute(select(Organization).where(Organization.slug == org_slug))
         org = org_res.scalar_one_or_none()
