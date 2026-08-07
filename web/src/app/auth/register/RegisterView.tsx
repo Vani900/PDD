@@ -48,6 +48,8 @@ export default function RegisterView() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
+      const firstError = Object.values(newErrors)[0]
+      toast.error(firstError)
       return
     }
 
