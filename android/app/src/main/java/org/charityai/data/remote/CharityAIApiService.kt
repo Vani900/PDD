@@ -19,7 +19,7 @@ data class ListVolunteerTasksResponse(val total: Int, val items: List<VolunteerT
 
 interface CharityAIApiService {
     companion object {
-        const val BASE_URL = "http://localhost:8000/" // Production endpoint: https://charityai-api.onrender.com/
+        val BASE_URL = org.charityai.BuildConfig.BASE_URL
     }
 
     @POST("api/v1/auth/register")
