@@ -20,49 +20,12 @@ services:
         fromDatabase:
           name: charityai-postgres
           property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: charityai-redis
-          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: https://charityai-web.onrender.com,http://localhost:3000
+        value: "*"
 
-  # ── 2. Next.js Web Frontend Service ─────────────────────────────────────────
-  - type: web
-    name: charityai-web
-    runtime: node
-    plan: free
-    region: singapore
-    buildCommand: cd web && npm install && npm run build
-    startCommand: cd web && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: charityai-api
-          property: host
-          suffix: /api/v1
-      - key: NEXT_PUBLIC_WS_URL
-        fromService:
-          type: web
-          name: charityai-api
-          property: host
-          suffix: /ws
-
-  # ── 3. Managed Redis Service ────────────────────────────────────────────────
-  - type: redis
-    name: charityai-redis
-    plan: free
-    region: singapore
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList: []
-
-# ── 4. Managed Databases ──────────────────────────────────────────────────────
+# ── 2. Managed PostgreSQL Database ───────────────────────────────────────────
 databases:
   - name: charityai-postgres
     databaseName: charityai
@@ -70,5 +33,6 @@ databases:
     plan: free
     region: singapore
     postgresMajorVersion: "16"
+
 
 
