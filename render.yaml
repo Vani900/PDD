@@ -10,9 +10,8 @@ services:
     runtime: docker
     dockerContext: .
     dockerfilePath: ./Dockerfile
-    target: production
     plan: starter
-    region: singapore # Change to your preferred region (e.g., oregon, frankfurt, singapore)
+    region: singapore
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
@@ -55,7 +54,14 @@ services:
           property: url
           suffix: /ws
 
-# ── 3. Managed Databases ──────────────────────────────────────────────────────
+  # ── 3. Managed Redis Service ────────────────────────────────────────────────
+  - type: redis
+    name: charityai-redis
+    plan: starter
+    region: singapore
+    maxmemoryPolicy: allkeys-lru
+
+# ── 4. Managed Databases ──────────────────────────────────────────────────────
 databases:
   - name: charityai-postgres
     databaseName: charityai
@@ -64,9 +70,3 @@ databases:
     region: singapore
     postgresMajorVersion: "16"
 
-# ── 4. Managed Redis ──────────────────────────────────────────────────────────
-redis:
-  - name: charityai-redis
-    plan: starter
-    region: singapore
-    maxmemoryPolicy: allkeys-lru
