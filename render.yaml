@@ -45,13 +45,13 @@ services:
         fromService:
           type: web
           name: charityai-api
-          property: url
+          property: host
           suffix: /api/v1
       - key: NEXT_PUBLIC_WS_URL
         fromService:
           type: web
           name: charityai-api
-          property: url
+          property: host
           suffix: /ws
 
   # ── 3. Managed Redis Service ────────────────────────────────────────────────
@@ -60,6 +60,7 @@ services:
     plan: starter
     region: singapore
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
 # ── 4. Managed Databases ──────────────────────────────────────────────────────
 databases:
@@ -69,4 +70,5 @@ databases:
     plan: starter
     region: singapore
     postgresMajorVersion: "16"
+
 
