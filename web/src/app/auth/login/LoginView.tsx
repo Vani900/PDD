@@ -85,22 +85,10 @@ function LoginForm() {
       }, 300)
     } catch (err: any) {
       const response = err.response?.data
-      if (response?.detail) {
-        const detail = response.detail
-        if (typeof detail === 'object' && detail.error_code === 'ACCOUNT_INACTIVE') {
-          toast.error('Account not verified. Please check your email for the OTP.')
-        } else if (typeof detail === 'object' && detail.message) {
-          toast.error(detail.message)
-        } else if (typeof detail === 'string') {
-          toast.error(detail)
-        } else {
-          toast.error('Invalid email or password.')
-        }
-      } else if (response?.message) {
-        toast.error(response.message)
-      } else {
-        toast.error('Login failed. Check your email and password.')
-      }
+      const message = response?.message || 
+        (typeof response?.detail === 'string' ? response.detail : response?.detail?.message) ||
+        'Invalid email or password.'
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }

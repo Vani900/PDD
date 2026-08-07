@@ -84,15 +84,9 @@ async def register(
     if existing.scalar_one_or_none():
         raise EmailAlreadyExistsException()
 
-    # Auto-activate accounts when:
-    # - we're in development mode, OR
-    # - no email provider is configured (SMTP_USER empty and no SendGrid key)
-    # This ensures registration always works end-to-end even on production Railway.
-    email_configured = bool(settings.SMTP_USER or settings.SENDGRID_API_KEY)
-    is_dev = settings.APP_ENV != "production"
-    skip_verification = is_dev or not email_configured
-    initial_status = AccountStatus.ACTIVE if skip_verification else AccountStatus.PENDING_VERIFICATION
-    email_verified = skip_verification
+    # Auto-activate accounts to ensure instant end-to-end sync across Web and Android
+    initial_status = AccountStatus.ACTIVE
+    email_verified = True
 
     # Create user
     user = User(
@@ -122,26 +116,6 @@ async def register(
     )
     db.add(profile)
 
-    if not skip_verification:
-        # Generate email OTP only when email is properly configured
-        otp_code = generate_numeric_otp(6)
-        from datetime import timedelta
-        otp = OTPVerification(
-            user_id=user.id,
-            otp_type="email_verification",
-            otp_code=otp_code,
-            expires_at=datetime.now(UTC) + timedelta(minutes=10),
-        )
-        db.add(otp)
-        try:
-            await db.flush()
-        except Exception:
-            pass  # OTP table issue is non-fatal
-
-        background_tasks.add_task(
-            _send_verification_email, str(user.id), payload.email, otp_code
-        )
-
     try:
         await db.commit()
     except Exception as commit_err:
@@ -151,17 +125,11 @@ async def register(
             detail=f"Registration failed during save: {str(commit_err)}"
         )
 
-    message = (
-        "Registration successful! Your account is active. You can log in now."
-        if skip_verification
-        else "Registration successful. Please verify your email with the OTP sent."
-    )
-
     return RegisterResponse(
         user_id=str(user.id),
         email=user.email,
-        message=message,
-        requires_verification=not skip_verification,
+        message="Registration successful! Your account is active. You can log in now.",
+        requires_verification=False,
     )
 
 
@@ -176,8 +144,9 @@ async def login(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
+    clean_email = payload.email.strip().lower()
     result = await db.execute(
-        select(User).where(User.email == payload.email.strip().lower(), User.is_deleted == False)
+        select(User).where(func.lower(func.trim(User.email)) == clean_email, User.is_deleted == False)
     )
     user = result.scalar_one_or_none()
 
@@ -192,8 +161,11 @@ async def login(
             user.locked_until = datetime.now(UTC) + timedelta(minutes=30)
         raise InvalidCredentialsException()
 
+    # Auto-activate account if it was pending verification
     if user.account_status == AccountStatus.PENDING_VERIFICATION:
-        raise AccountNotVerifiedException()
+        user.account_status = AccountStatus.ACTIVE
+        user.email_verified = True
+        await db.flush()
 
     if user.account_status == AccountStatus.SUSPENDED:
         raise AccountSuspendedException()
