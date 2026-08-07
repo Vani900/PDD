@@ -139,6 +139,7 @@ def _register_routers(app: FastAPI) -> None:
         auth,
         corporate,
         donations,
+        migrate,
         ngo_requirements,
         ngos,
         notifications,
@@ -163,6 +164,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(admin.router, prefix=prefix)
     app.include_router(analytics.router, prefix=prefix)
     app.include_router(notifications.router, prefix=prefix)
+    app.include_router(migrate.router, prefix=prefix)
     app.include_router(websockets.router, prefix="/ws")
 
 
