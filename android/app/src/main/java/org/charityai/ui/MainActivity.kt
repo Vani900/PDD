@@ -16,7 +16,7 @@ import org.charityai.ui.theme.CharityAITheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate()
+        super.onCreate(savedInstanceState)
         setContent {
             CharityAITheme {
                 val navController = rememberNavController()
