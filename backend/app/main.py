@@ -101,6 +101,7 @@ def _register_middleware(app: FastAPI) -> None:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|.*\.charityai\.org|.*\.vercel\.app)(:\d+)?",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],

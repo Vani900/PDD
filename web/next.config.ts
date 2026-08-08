@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https: http:",
-              "connect-src 'self' https://*.charityai.org wss://*.charityai.org http://localhost:* ws://localhost:*",
+              "connect-src 'self' https://charityai-api-production.up.railway.app https://*.up.railway.app https://*.charityai.org wss://*.charityai.org http://localhost:* ws://localhost:*",
               "frame-src https://js.stripe.com https://hooks.stripe.com",
             ].join('; '),
           },

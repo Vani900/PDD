@@ -66,9 +66,25 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         if isinstance(v, list):
             return [str(origin) for origin in v]
-        return ["http://localhost:3000"]
+        return [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",
+            "https://charityai.org",
+            "https://app.charityai.org",
+        ]
 
-    ALLOWED_ORIGINS: Any = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: Any = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "https://charityai.org",
+        "https://app.charityai.org",
+    ]
 
     # ── PostgreSQL ───────────────────────────────────────────────────────────
     POSTGRES_HOST: str = "localhost"
