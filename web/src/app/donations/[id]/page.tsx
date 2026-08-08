@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { DonationDetailView } from './DonationDetailView'
 
+export const dynamic = 'force-dynamic'
+
 export default function DonationDetailPage({ params }: { params: any }) {
   const [id, setId] = useState<string>('')
 

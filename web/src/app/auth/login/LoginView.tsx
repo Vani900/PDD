@@ -85,9 +85,10 @@ function LoginForm() {
       }, 300)
     } catch (err: any) {
       const response = err.response?.data
+      const status = err.response?.status
       const message = response?.message || 
         (typeof response?.detail === 'string' ? response.detail : response?.detail?.message) ||
-        'Invalid email or password.'
+        `Login failed (Status: ${status || 'Network Error'}). Check credentials.`
       toast.error(message)
     } finally {
       setIsLoading(false)

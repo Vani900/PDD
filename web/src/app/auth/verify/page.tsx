@@ -5,6 +5,8 @@ export const metadata = {
   description: 'Enter your OTP to verify your email address.',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function VerifyPage() {
   return <VerifyView />
 }

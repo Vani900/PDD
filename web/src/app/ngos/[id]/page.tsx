@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import NGODetailView from './NGODetailView'
 
+export const dynamic = 'force-dynamic'
+
 export default function NGODetailPage({ params }: { params: any }) {
   const [id, setId] = useState<string>('')
 
