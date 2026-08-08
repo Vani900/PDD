@@ -48,9 +48,10 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
             }))
           }
         })
-        .catch(() => {
-          // If token is invalid or expired, clean up session
-          store.dispatch(logout())
+        .catch((err: any) => {
+          if (err?.response?.status === 401) {
+            store.dispatch(logout())
+          }
         })
     }
   }, [])
