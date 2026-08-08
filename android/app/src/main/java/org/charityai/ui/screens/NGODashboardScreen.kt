@@ -47,6 +47,7 @@ fun NGODashboardScreen(navController: NavController, sessionManager: SessionMana
     var requirements by remember { mutableStateOf<List<NgoRequirementDto>>(emptyList()) }
     var openDonations by remember { mutableStateOf<List<DonationDto>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var requestingDonationId by remember { mutableStateOf<String?>(null) }
 
     // Pulse animation for live sync dot
     val infiniteTransition = rememberInfiniteTransition(label = "pulseNgo")
@@ -331,25 +332,38 @@ fun NGODashboardScreen(navController: NavController, sessionManager: SessionMana
                                 Text(don.title ?: don.donation_type, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
                                 Text("📍 ${don.pickup_city ?: "India"} · Type: ${don.donation_type.uppercase()}", fontSize = 11.sp, color = TextMuted)
                             }
+                            val isRequestingThis = requestingDonationId == don.id
                             Button(
+                                enabled = requestingDonationId == null,
                                 onClick = {
                                     val token = sessionManager.getAuthHeader() ?: return@Button
-                                    if (requirements.isEmpty()) {
-                                        Toast.makeText(context, "Post a requirement first", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    val reqId = requirements.first().id
+                                    requestingDonationId = don.id
                                     scope.launch {
                                         try {
-                                            val res = ApiClient.getService().requestDonation(token, reqId, don.id, RequestDonationPayload("NGO request from mobile app"))
+                                            val payload = RequestDonationPayload("NGO request from mobile app")
+                                            val res = if (requirements.isNotEmpty()) {
+                                                ApiClient.getService().requestDonation(token, requirements.first().id, don.id, payload)
+                                            } else {
+                                                ApiClient.getService().directRequestDonation(token, don.id, payload)
+                                            }
+
                                             if (res.isSuccessful) {
                                                 Toast.makeText(context, "Request sent to donor!", Toast.LENGTH_SHORT).show()
                                                 loadData()
                                             } else {
-                                                Toast.makeText(context, "Request failed (${res.code()})", Toast.LENGTH_SHORT).show()
+                                                val rawErr = res.errorBody()?.string()
+                                                val errMsg = ApiClient.parseError(rawErr)
+                                                if (res.code() == 409) {
+                                                    Toast.makeText(context, "Request already sent for this donation", Toast.LENGTH_LONG).show()
+                                                } else {
+                                                    Toast.makeText(context, errMsg, Toast.LENGTH_LONG).show()
+                                                }
                                             }
                                         } catch (e: Exception) {
+                                            if (e is kotlinx.coroutines.CancellationException) throw e
                                             Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        } finally {
+                                            requestingDonationId = null
                                         }
                                     }
                                 },
@@ -357,7 +371,11 @@ fun NGODashboardScreen(navController: NavController, sessionManager: SessionMana
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Text("Request", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                if (isRequestingThis) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                } else {
+                                    Text("Request", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }

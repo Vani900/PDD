@@ -267,6 +267,13 @@ interface CharityAIApiService {
         @Body payload: RequestDonationPayload
     ): Response<GenericActionResponse>
 
+    @POST("ngo-requirements/direct-request/{donationId}")
+    suspend fun directRequestDonation(
+        @Header("Authorization") token: String,
+        @Path("donationId") donationId: String,
+        @Body payload: RequestDonationPayload
+    ): Response<GenericActionResponse>
+
     @GET("receivers/help-requests")
     suspend fun getHelpRequests(@Header("Authorization") token: String): Response<ListHelpRequestsResponse>
 

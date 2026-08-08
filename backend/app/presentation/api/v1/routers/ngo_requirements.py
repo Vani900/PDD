@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -292,8 +293,6 @@ async def request_donation(
         created_by=str(current_user.id),
     )
     db.add(match)
-
-    # Update requirement status
     req.status = RequirementStatus.MATCHED
 
     # Notify the donor
@@ -309,7 +308,145 @@ async def request_donation(
     )
     db.add(notification)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail={"message": "A match request already exists for this donation from your NGO."})
+
+    return {
+        "match_id": str(match.id),
+        "status": match.status,
+        "message": "Donation request sent to donor. They will be notified to accept or decline.",
+    }
+
+
+# ── 5b. POST /ngo-requirements/direct-request/{donation_id} ─────────────────
+@router.post(
+    "/direct-request/{donation_id}",
+    status_code=status.HTTP_201_CREATED,
+    summary="NGO directly requests a specific donor donation",
+)
+async def direct_request_donation(
+    donation_id: uuid.UUID,
+    payload: dict = {},
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    # Resolve or create NGO organization for user
+    member_res = await db.execute(
+        select(OrganizationMember).where(OrganizationMember.user_id == current_user.id)
+    )
+    member = member_res.scalar_one_or_none()
+
+    ngo_id: uuid.UUID
+    if member:
+        ngo_id = member.organization_id
+    else:
+        org_slug = f"org-user-{current_user.id}"
+        org_res = await db.execute(select(Organization).where(Organization.slug == org_slug))
+        org = org_res.scalar_one_or_none()
+        if not org:
+            org_name = current_user.email.split('@')[0] if current_user.email else "NGO"
+            org = Organization(
+                name=f"{org_name}'s NGO",
+                slug=org_slug,
+                org_type=OrganizationType.NGO,
+                status=OrganizationStatus.VERIFIED,
+                email=current_user.email,
+                phone=current_user.phone or "9999999999",
+                city="Bangalore",
+                country="India",
+                created_by=str(current_user.id),
+            )
+            db.add(org)
+            await db.flush()
+
+            new_member = OrganizationMember(
+                organization_id=org.id,
+                user_id=current_user.id,
+                role="admin",
+            )
+            db.add(new_member)
+            await db.flush()
+        ngo_id = org.id
+
+    # Get or create an open requirement for this category
+    don_res = await db.execute(
+        select(Donation).where(Donation.id == donation_id, Donation.is_deleted == False)
+    )
+    donation = don_res.scalar_one_or_none()
+    if not donation:
+        raise HTTPException(status_code=404, detail={"message": "Donation not found."})
+
+    if donation.status not in (DonationStatus.PENDING, DonationStatus.SCHEDULED):
+        raise HTTPException(status_code=400, detail={"message": f"Donation is not available for matching (status: {donation.status})."})
+
+    # Check for existing match
+    existing_match = await db.execute(
+        select(DonationMatch).where(
+            DonationMatch.donation_id == donation_id,
+            DonationMatch.ngo_id == ngo_id,
+            DonationMatch.status.in_([MatchStatus.REQUESTED, MatchStatus.PENDING_DONOR, MatchStatus.ACCEPTED]),
+        )
+    )
+    if existing_match.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail={"message": "A match request already exists for this donation from your NGO."})
+
+    # Find existing open requirement or create new one
+    req_res = await db.execute(
+        select(NGORequirement).where(
+            NGORequirement.ngo_id == ngo_id,
+            NGORequirement.is_deleted == False,
+        )
+    )
+    req = req_res.scalars().first()
+    if not req:
+        req = NGORequirement(
+            ngo_id=ngo_id,
+            created_by_user_id=current_user.id,
+            category=donation.donation_type,
+            item_name=donation.title or "General Items",
+            quantity=donation.quantity or 1,
+            unit="items",
+            city=donation.pickup_city or "Bangalore",
+            urgency=RequirementUrgency.HIGH,
+            status=RequirementStatus.MATCHED,
+        )
+        db.add(req)
+        await db.flush()
+    else:
+        req.status = RequirementStatus.MATCHED
+
+    match = DonationMatch(
+        donation_id=donation_id,
+        requirement_id=req.id,
+        ngo_id=ngo_id,
+        donor_id=donation.donor_id,
+        status=MatchStatus.PENDING_DONOR,
+        request_message=payload.get("message", "NGO request from mobile app"),
+        requested_at=datetime.now(UTC),
+        created_by=str(current_user.id),
+    )
+    db.add(match)
+
+    notification = Notification(
+        user_id=donation.donor_id,
+        title="NGO Interested in Your Donation! 🎉",
+        body=f"An NGO has requested your donation '{donation.title}'. Log in to accept or decline.",
+        notification_type="ngo_match_request",
+        channel="in_app",
+        entity_type="donation_match",
+        entity_id=str(match.id),
+        priority="high",
+    )
+    db.add(notification)
+
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail={"message": "A match request already exists for this donation from your NGO."})
 
     return {
         "match_id": str(match.id),
