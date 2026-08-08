@@ -130,7 +130,7 @@ fun RegisterScreen(navController: NavController) {
                             } else {
                                 val errStr = response.errorBody()?.string() ?: ""
                                 val msg = ApiClient.formatApiError(
-                                    endpoint = "api/v1/auth/register",
+                                    endpoint = "auth/register",
                                     method = "POST",
                                     statusCode = response.code(),
                                     errorBody = errStr
@@ -139,7 +139,7 @@ fun RegisterScreen(navController: NavController) {
                             }
                         } catch (e: Exception) {
                             val msg = ApiClient.formatNetworkError(
-                                endpoint = "api/v1/auth/register",
+                                endpoint = "auth/register",
                                 method = "POST",
                                 e = e
                             )

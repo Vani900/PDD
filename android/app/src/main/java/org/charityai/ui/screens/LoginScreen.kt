@@ -159,7 +159,7 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                             } else {
                                 val errStr = response.errorBody()?.string() ?: ""
                                 val msg = ApiClient.formatApiError(
-                                    endpoint = "api/v1/auth/login",
+                                    endpoint = "auth/login",
                                     method = "POST",
                                     statusCode = response.code(),
                                     errorBody = errStr
@@ -168,7 +168,7 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                             }
                         } catch (e: Exception) {
                             val msg = ApiClient.formatNetworkError(
-                                endpoint = "api/v1/auth/login",
+                                endpoint = "auth/login",
                                 method = "POST",
                                 e = e
                             )

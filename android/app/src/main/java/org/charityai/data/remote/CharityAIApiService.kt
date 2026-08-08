@@ -203,63 +203,63 @@ interface CharityAIApiService {
         val BASE_URL = org.charityai.BuildConfig.BASE_URL
     }
 
-    @POST("api/v1/auth/register")
+    @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
 
-    @POST("api/v1/auth/login")
+    @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
-    @GET("api/v1/users/me")
+    @GET("users/me")
     suspend fun getUserProfile(@Header("Authorization") token: String): Response<UserProfileDto>
 
-    @GET("api/v1/users/me/impact")
+    @GET("users/me/impact")
     suspend fun getImpactStats(@Header("Authorization") token: String): Response<UserImpactDto>
 
-    @GET("api/v1/donations")
+    @GET("donations")
     suspend fun getDonations(
         @Header("Authorization") token: String?,
         @Query("page") page: Int = 1,
         @Query("status") status: String? = null
     ): Response<ListDonationsResponse>
 
-    @GET("api/v1/donations/my")
+    @GET("donations/my")
     suspend fun getMyDonations(
         @Header("Authorization") token: String,
         @Query("page") page: Int = 1
     ): Response<ListDonationsResponse>
 
-    @POST("api/v1/donations")
+    @POST("donations")
     suspend fun createDonation(
         @Header("Authorization") token: String,
         @Body payload: CreateDonationRequest
     ): Response<CreateDonationResponse>
 
-    @PATCH("api/v1/donations/{id}/status")
+    @PATCH("donations/{id}/status")
     suspend fun updateDonationStatus(
         @Header("Authorization") token: String,
         @Path("id") id: String,
         @Body payload: UpdateDonationStatusRequest
     ): Response<UpdateDonationStatusResponse>
 
-    @GET("api/v1/ngo-requirements")
+    @GET("ngo-requirements")
     suspend fun getNgoRequirements(
         @Header("Authorization") token: String?,
         @Query("page") page: Int = 1
     ): Response<ListNgoRequirementsResponse>
 
-    @GET("api/v1/ngo-requirements/my")
+    @GET("ngo-requirements/my")
     suspend fun getMyNgoRequirements(
         @Header("Authorization") token: String,
         @Query("page") page: Int = 1
     ): Response<ListNgoRequirementsResponse>
 
-    @POST("api/v1/ngo-requirements")
+    @POST("ngo-requirements")
     suspend fun createNgoRequirement(
         @Header("Authorization") token: String,
         @Body payload: CreateNgoRequirementRequest
     ): Response<CreateNgoRequirementResponse>
 
-    @POST("api/v1/ngo-requirements/{reqId}/request-donation/{donationId}")
+    @POST("ngo-requirements/{reqId}/request-donation/{donationId}")
     suspend fun requestDonation(
         @Header("Authorization") token: String,
         @Path("reqId") reqId: String,
@@ -267,19 +267,19 @@ interface CharityAIApiService {
         @Body payload: RequestDonationPayload
     ): Response<GenericActionResponse>
 
-    @GET("api/v1/receivers/help-requests")
+    @GET("receivers/help-requests")
     suspend fun getHelpRequests(@Header("Authorization") token: String): Response<ListHelpRequestsResponse>
 
-    @POST("api/v1/receivers/help-requests")
+    @POST("receivers/help-requests")
     suspend fun createHelpRequest(
         @Header("Authorization") token: String,
         @Body payload: CreateHelpRequestRequest
     ): Response<GenericActionResponse>
 
-    @GET("api/v1/volunteers/tasks")
+    @GET("volunteers/tasks")
     suspend fun getVolunteerTasks(@Header("Authorization") token: String): Response<ListVolunteerTasksResponse>
 
-    @POST("api/v1/volunteers/tasks/{id}/complete")
+    @POST("volunteers/tasks/{id}/complete")
     suspend fun completeTask(
         @Header("Authorization") token: String,
         @Path("id") id: String,
