@@ -407,7 +407,7 @@ async def direct_request_donation(
             created_by_user_id=current_user.id,
             category=donation.donation_type,
             item_name=donation.title or "General Items",
-            quantity=donation.quantity or 1,
+            quantity=float(donation.amount) if donation.amount else 1.0,
             unit="items",
             city=donation.pickup_city or "Bangalore",
             urgency=RequirementUrgency.HIGH,
