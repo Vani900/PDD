@@ -134,16 +134,21 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                                 val body = response.body()!!
                                 val role = body.role ?: loginRole
                                 var userName = body.email?.substringBefore("@") ?: "User"
+                                val token = body.access_token ?: ""
+                                val refresh = body.refresh_token ?: ""
+                                val userId = body.user_id ?: ""
                                 try {
-                                    val profileRes = ApiClient.getService().getUserProfile("Bearer ${body.access_token}")
-                                    if (profileRes.isSuccessful && profileRes.body() != null) {
-                                        val p = profileRes.body()!!
-                                        val fullName = "${p.first_name} ${p.last_name}".trim()
-                                        if (fullName.isNotBlank()) userName = fullName
+                                    if (token.isNotBlank()) {
+                                        val profileRes = ApiClient.getService().getUserProfile("Bearer $token")
+                                        if (profileRes.isSuccessful && profileRes.body() != null) {
+                                            val p = profileRes.body()!!
+                                            val fullName = "${p.first_name} ${p.last_name}".trim()
+                                            if (fullName.isNotBlank()) userName = fullName
+                                        }
                                     }
                                 } catch (e: Exception) {}
 
-                                sessionManager.saveSession(body.access_token, body.refresh_token, body.user_id, role, userName, body.email)
+                                sessionManager.saveSession(token, refresh, userId, role, userName, body.email)
                                 Toast.makeText(context, "Welcome back, $userName!", Toast.LENGTH_SHORT).show()
 
                                 if (role == "ngo_admin" || role == "ngo_staff" || role == "ngo" || loginRole == "ngo") {
@@ -153,13 +158,21 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                                 }
                             } else {
                                 val errStr = response.errorBody()?.string() ?: ""
-                                val msg = ApiClient.parseError(errStr).ifBlank {
-                                    "Login failed (${response.code()}). Check your credentials."
-                                }
+                                val msg = ApiClient.formatApiError(
+                                    endpoint = "api/v1/auth/login",
+                                    method = "POST",
+                                    statusCode = response.code(),
+                                    errorBody = errStr
+                                )
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Network error: ${e.localizedMessage ?: "Unable to connect"}", Toast.LENGTH_LONG).show()
+                            val msg = ApiClient.formatNetworkError(
+                                endpoint = "api/v1/auth/login",
+                                method = "POST",
+                                e = e
+                            )
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                         } finally {
                             isLoading = false
                         }

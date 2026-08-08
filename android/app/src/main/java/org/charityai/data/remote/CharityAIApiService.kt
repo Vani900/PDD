@@ -10,11 +10,13 @@ data class LoginRequest(
 )
 
 data class LoginResponse(
-    val access_token: String,
-    val refresh_token: String,
-    val user_id: String,
+    val access_token: String? = null,
+    val refresh_token: String? = null,
+    val user_id: String? = null,
     val email: String? = null,
-    val role: String? = "donor"
+    val role: String? = "donor",
+    val requires_2fa: Boolean = false,
+    val message: String? = null
 )
 
 data class RegisterRequest(
@@ -26,10 +28,10 @@ data class RegisterRequest(
 )
 
 data class RegisterResponse(
-    val user_id: String,
-    val email: String,
-    val message: String,
-    val requires_verification: Boolean
+    val user_id: String? = null,
+    val email: String? = null,
+    val message: String? = null,
+    val requires_verification: Boolean = false
 )
 
 // ── User Data Classes ────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { api } from "@/lib/api";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
@@ -30,11 +31,9 @@ export default function ProfilePage() {
       return;
     }
     try {
-      const res = await fetch("http://localhost:8000/api/v1/users/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const res = await api.users.me();
+      if (res?.data) {
+        const data = res.data;
         setProfile(data);
         setFormData({
           first_name: data.first_name || "",
@@ -56,24 +55,13 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     setMsg("");
-    const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch("http://localhost:8000/api/v1/users/me", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        setMsg("Profile updated successfully!");
-        fetchProfile();
-      } else {
-        setMsg("Failed to update profile.");
-      }
-    } catch (e) {
-      setMsg("Network error.");
+      await api.users.updateMe(formData);
+      setMsg("Profile updated successfully!");
+      fetchProfile();
+    } catch (e: any) {
+      const serverMsg = e.response?.data?.message || "Failed to update profile.";
+      setMsg(serverMsg);
     } finally {
       setSaving(false);
     }

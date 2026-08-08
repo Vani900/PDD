@@ -129,46 +129,21 @@ fun RegisterScreen(navController: NavController) {
                                 navController.navigate("login") { popUpTo("register") { inclusive = true } }
                             } else {
                                 val errStr = response.errorBody()?.string() ?: ""
-                                val parsedMsg = try {
-                                    val jsonObj = org.json.JSONObject(errStr)
-                                    if (jsonObj.has("message")) {
-                                        jsonObj.getString("message")
-                                    } else if (jsonObj.has("detail")) {
-                                        val detailObj = jsonObj.get("detail")
-                                        if (detailObj is org.json.JSONArray) {
-                                            val list = mutableListOf<String>()
-                                            for (i in 0 until detailObj.length()) {
-                                                val item = detailObj.optJSONObject(i)
-                                                if (item != null && item.has("msg")) {
-                                                    list.add(item.getString("msg"))
-                                                }
-                                            }
-                                            list.joinToString("; ")
-                                        } else {
-                                            detailObj.toString()
-                                        }
-                                    } else null
-                                } catch (e: Exception) { null }
-
-                                val msg = parsedMsg ?: when {
-                                    errStr.contains("uppercase", ignoreCase = true) ->
-                                        "Password needs an uppercase letter (A-Z)"
-                                    errStr.contains("lowercase", ignoreCase = true) ->
-                                        "Password needs a lowercase letter (a-z)"
-                                    errStr.contains("digit", ignoreCase = true) ->
-                                        "Password needs a number (0-9)"
-                                    errStr.contains("special", ignoreCase = true) ->
-                                        "Password needs a special character (!, @, #, $...)"
-                                    errStr.contains("already", ignoreCase = true) || errStr.contains("exists", ignoreCase = true) ->
-                                        "Email already registered. Please log in!"
-                                    errStr.contains("password", ignoreCase = true) ->
-                                        "Password: 8+ chars, A-Z, a-z, 0-9 & special char required"
-                                    else -> "Registration failed (${response.code()}). Please check all fields."
-                                }
+                                val msg = ApiClient.formatApiError(
+                                    endpoint = "api/v1/auth/register",
+                                    method = "POST",
+                                    statusCode = response.code(),
+                                    errorBody = errStr
+                                )
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Connection error: ${e.localizedMessage ?: "Unable to reach server"}", Toast.LENGTH_LONG).show()
+                            val msg = ApiClient.formatNetworkError(
+                                endpoint = "api/v1/auth/register",
+                                method = "POST",
+                                e = e
+                            )
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                         } finally {
                             isLoading = false
                         }
