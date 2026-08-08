@@ -63,12 +63,8 @@ export default function RegisterView() {
         password,
         role,
       })
-      toast.success(data.message || 'Registration successful!')
-      if (data.requires_verification) {
-        router.push(`/auth/verify?user_id=${data.user_id}&email=${encodeURIComponent(cleanEmail)}`)
-      } else {
-        router.push('/auth/login?registered=1')
-      }
+      toast.success(data.message || 'Registration successful! Please log in.')
+      router.push('/auth/login?registered=1')
     } catch (err: any) {
       const data = err.response?.data
       const status = err.response?.status

@@ -1,12 +1,7 @@
-import { VerifyView } from './VerifyView'
-
-export const metadata = {
-  title: 'Verify Email | CharityAI',
-  description: 'Enter your OTP to verify your email address.',
-}
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default function VerifyPage() {
-  return <VerifyView />
+  redirect('/auth/login')
 }
