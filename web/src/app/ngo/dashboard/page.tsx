@@ -1,9 +1,21 @@
-import { NgoDashboardView } from './NgoDashboardView'
+'use client'
 
-export const metadata = {
-  title: 'NGO Hub | CharityAI',
-  description: 'NGO organization dashboard for managing requirements and donor matching.',
-}
+import React from 'react'
+import dynamicImport from 'next/dynamic'
+
+export const dynamic = 'force-dynamic'
+
+const NgoDashboardView = dynamicImport(
+  () => import('./NgoDashboardView').then((mod) => mod.NgoDashboardView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen bg-muted/30 pt-20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      </div>
+    ),
+  }
+)
 
 export default function NgoDashboardPage() {
   return <NgoDashboardView />
