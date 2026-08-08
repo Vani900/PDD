@@ -200,11 +200,8 @@ fun NGORequirementsScreen(navController: NavController, sessionManager: SessionM
                                 navController.navigate("ngo_dashboard") { popUpTo("create_requirement") { inclusive = true } }
                             } else {
                                 val errStr = res.errorBody()?.string() ?: ""
-                                val parsedErr = try {
-                                    val obj = org.json.JSONObject(errStr)
-                                    if (obj.has("message")) obj.getString("message") else null
-                                } catch (e: Exception) { null }
-                                Toast.makeText(context, parsedErr ?: "Posting failed (${res.code()})", Toast.LENGTH_LONG).show()
+                                val msg = ApiClient.parseError(errStr).ifBlank { "Posting failed (${res.code()})" }
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         } catch (e: Exception) {
                             Toast.makeText(context, "Network error: ${e.localizedMessage ?: "Unable to connect"}", Toast.LENGTH_LONG).show()

@@ -104,7 +104,7 @@ fun DonorDashboardScreen(navController: NavController, sessionManager: SessionMa
                     ngoReqs = reqRes.body()?.items ?: emptyList()
                 }
             } catch (e: Exception) {
-                // Silently handle offline fallback
+                Toast.makeText(context, "Sync error: ${e.localizedMessage ?: "Unable to connect to server"}", Toast.LENGTH_LONG).show()
             } finally {
                 isLoading = false
                 isRefreshing = false

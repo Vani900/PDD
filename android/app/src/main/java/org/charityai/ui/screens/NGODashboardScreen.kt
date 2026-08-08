@@ -90,7 +90,7 @@ fun NGODashboardScreen(navController: NavController, sessionManager: SessionMana
                     openDonations = donRes.body()?.items ?: emptyList()
                 }
             } catch (e: Exception) {
-                // Handle offline fallback
+                Toast.makeText(context, "Sync error: ${e.localizedMessage ?: "Unable to connect to server"}", Toast.LENGTH_LONG).show()
             } finally {
                 isLoading = false
             }

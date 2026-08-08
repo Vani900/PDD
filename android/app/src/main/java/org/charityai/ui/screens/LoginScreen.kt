@@ -153,10 +153,8 @@ fun LoginScreen(navController: NavController, sessionManager: SessionManager) {
                                 }
                             } else {
                                 val errStr = response.errorBody()?.string() ?: ""
-                                val msg = if (errStr.contains("invalid", ignoreCase = true) || response.code() == 401) {
-                                    "Invalid email or password"
-                                } else {
-                                    "Login failed. Please check credentials."
+                                val msg = ApiClient.parseError(errStr).ifBlank {
+                                    "Login failed (${response.code()}). Check your credentials."
                                 }
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }

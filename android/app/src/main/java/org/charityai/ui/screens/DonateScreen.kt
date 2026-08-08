@@ -314,11 +314,8 @@ fun DonateScreen(navController: NavController, sessionManager: SessionManager) {
                                 navController.navigate("donor_dashboard") { popUpTo("create_donation") { inclusive = true } }
                             } else {
                                 val errStr = res.errorBody()?.string() ?: ""
-                                val parsedErr = try {
-                                    val obj = org.json.JSONObject(errStr)
-                                    if (obj.has("message")) obj.getString("message") else null
-                                } catch (e: Exception) { null }
-                                Toast.makeText(context, parsedErr ?: "Submission failed (${res.code()})", Toast.LENGTH_LONG).show()
+                                val msg = ApiClient.parseError(errStr).ifBlank { "Submission failed (${res.code()})" }
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         } catch (e: Exception) {
                             Toast.makeText(context, "Network error: ${e.localizedMessage ?: "Unable to connect"}", Toast.LENGTH_LONG).show()
