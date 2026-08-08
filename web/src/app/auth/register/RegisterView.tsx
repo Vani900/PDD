@@ -81,9 +81,11 @@ export default function RegisterView() {
         setErrors(fieldErrors)
         const firstMsg = data.detail[0]?.msg || 'Please check field validation errors.'
         toast.error(`Validation Error: ${firstMsg}`)
+      } else if (status) {
+        const msg = data?.message || (typeof data?.detail === 'string' ? data.detail : data?.detail?.message) || 'Registration failed.'
+        toast.error(`HTTP ${status}: ${msg}`)
       } else {
-        const msg = data?.message || (typeof data?.detail === 'string' ? data.detail : data?.detail?.message) || `Registration failed (Status: ${status || 'Network Error'})`
-        toast.error(msg)
+        toast.error('Network / CORS Error: Could not reach Railway API endpoint.')
       }
     } finally {
       setIsLoading(false)

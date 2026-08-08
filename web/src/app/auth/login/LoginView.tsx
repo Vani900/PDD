@@ -86,9 +86,15 @@ function LoginForm() {
     } catch (err: any) {
       const response = err.response?.data
       const status = err.response?.status
-      const message = response?.message || 
-        (typeof response?.detail === 'string' ? response.detail : response?.detail?.message) ||
-        `Login failed (Status: ${status || 'Network Error'}). Check credentials.`
+      let message = ""
+      if (status) {
+        const detailMsg = response?.message || (typeof response?.detail === 'string' ? response.detail : Array.isArray(response?.detail) ? response.detail.map((d: any) => d.msg).join('; ') : response?.detail?.message)
+        message = `HTTP ${status}: ${detailMsg || 'Authentication Failed'}`
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        message = `Network / CORS Error: Could not reach Railway API endpoint.`
+      } else {
+        message = `Client Error: ${err.message || 'Unable to process request'}`
+      }
       toast.error(message)
     } finally {
       setIsLoading(false)
