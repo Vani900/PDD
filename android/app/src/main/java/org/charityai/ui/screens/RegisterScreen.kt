@@ -113,8 +113,20 @@ fun RegisterScreen(navController: NavController) {
 
             Button(
                 onClick = {
-                    if (firstName.isBlank() || email.isBlank() || password.isBlank()) {
-                        Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
+                    if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank()) {
+                        Toast.makeText(context, "Please fill all required fields (First & Last name required)", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (password.length < 8) {
+                        Toast.makeText(context, "Password must be at least 8 characters long", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    val hasUpper = password.any { it.isUpperCase() }
+                    val hasLower = password.any { it.isLowerCase() }
+                    val hasDigit = password.any { it.isDigit() }
+                    val hasSpecial = password.any { "!@#$%^&*(),.?\":{}|<>".contains(it) }
+                    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+                        Toast.makeText(context, "Password must contain uppercase, lowercase, digit, and special character (!@#$%^&*)", Toast.LENGTH_LONG).show()
                         return@Button
                     }
                     isLoading = true
