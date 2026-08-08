@@ -30,7 +30,7 @@ import {
 import { useTheme } from 'next-themes'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '@/store'
-import { logout } from '@/store/slices/authSlice'
+import { logout, setUser } from '@/store/slices/authSlice'
 import { cn } from '@/lib/utils'
 
 const navigation = [
@@ -76,11 +76,12 @@ export function Navbar() {
       const token = localStorage.getItem('access_token')
       const savedRole = localStorage.getItem('user_role') || 'donor'
       if (token) {
-        dispatch(logout()) // reset state then set user token
-        dispatch({
-          type: 'auth/setUser',
-          payload: { id: 'current', email: 'user@charityai.org', role: savedRole, account_status: 'active' },
-        })
+        dispatch(setUser({
+          id: 'current',
+          email: 'user@charityai.org',
+          role: savedRole,
+          account_status: 'active'
+        }))
       }
     }
 

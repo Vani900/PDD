@@ -44,10 +44,14 @@ const authSlice = createSlice({
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('access_token')
         const refresh = localStorage.getItem('refresh_token')
+        const role = localStorage.getItem('user_role') || 'donor'
         if (token) {
           state.accessToken = token
           state.refreshToken = refresh
           state.isAuthenticated = true
+          if (!state.user) {
+            state.user = { id: 'current', email: '', role, account_status: 'active' }
+          }
         }
       }
     },
