@@ -101,6 +101,8 @@ jobs:
         with:
           name: Selenium-E2E-Excel-Report
           path: |
+            selenium-tests/reports/Selenium-E2E-Test-Report-1786366961381.xlsx
+            selenium-tests/reports/Selenium-E2E-Test-Report.xlsx
             selenium-tests/reports/Selenium-E2E-Test-Report*.xlsx
             selenium-tests/reports/selenium-summary.json
             selenium-tests/reports/screenshots/

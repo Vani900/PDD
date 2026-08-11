@@ -29,7 +29,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Test Category | Framework | Total Tests | Status | Excel Report File |" >> $GITHUB_STEP_SUMMARY
           echo "|:---|:---|:---|:---|:---|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌐 **Web E2E Testing** | Selenium WebDriver | 460+ | ✅ **PASSED** | \`Selenium-E2E-Test-Report.xlsx\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 **Web E2E Testing** | Selenium WebDriver | 460+ | ✅ **PASSED** | \`Selenium-E2E-Test-Report-1786366961381.xlsx\` |" >> $GITHUB_STEP_SUMMARY
           echo "| 🛡️ **Security & Pentest** | OWASP Top 10 & API Security | 300+ | ✅ **PASSED** | \`Security-Test-Report.xlsx\` |" >> $GITHUB_STEP_SUMMARY
           echo "| ⚡ **Performance & Load** | Stress / Spike / Load Testing | 5 Scenarios | ✅ **PASSED** | \`Load-Test-Report.xlsx\` |" >> $GITHUB_STEP_SUMMARY
           echo "| 📱 **Mobile Android E2E** | Appium / UIAutomator2 | 1,111+ | ✅ **PASSED** | \`test-report.xlsx\` |" >> $GITHUB_STEP_SUMMARY
@@ -37,7 +37,7 @@ jobs:
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Artifacts Download" >> $GITHUB_STEP_SUMMARY
           echo "Download the generated Excel sheets from the **Artifacts** section at the top of this GitHub Actions run summary:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Selenium-E2E-Test-Report.xlsx** (Web flows, donations, NGO portals, registration)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Selenium-E2E-Test-Report-1786366961381.xlsx** (Web flows, donations, NGO portals, registration)" >> $GITHUB_STEP_SUMMARY
           echo "- **Security-Test-Report.xlsx** (OWASP, SQLi, XSS, RBAC, JWT, Rate limiting)" >> $GITHUB_STEP_SUMMARY
           echo "- **Load-Test-Report.xlsx** (p95 latency, RPS, concurrent VUs, SLA compliance)" >> $GITHUB_STEP_SUMMARY
           echo "- **Appium-Android-Test-Report.xlsx** (Android Jetpack Compose flows, donation matches)" >> $GITHUB_STEP_SUMMARY
@@ -48,6 +48,8 @@ jobs:
         with:
           name: Selenium-Web-E2E-Excel-Report
           path: |
+            selenium-tests/reports/Selenium-E2E-Test-Report-1786366961381.xlsx
+            selenium-tests/reports/Selenium-E2E-Test-Report.xlsx
             selenium-tests/reports/*.xlsx
             selenium-tests/reports/*.json
           retention-days: 60
