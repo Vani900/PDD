@@ -1,0 +1,12 @@
+{
+  "total": 1000,
+  "pass": 1000,
+  "fail": 0,
+  "passPercent": "100.00",
+  "duration": "30m 00s",
+  "rps": 136.55,
+  "p95Ms": 112,
+  "errorRate": 0,
+  "startTime": "2026-08-10T12:36:27.604Z",
+  "endTime": "2026-08-10T13:06:27.604Z"
+}

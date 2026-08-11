@@ -10,7 +10,7 @@ import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSelector } from 'react-redux'
 import type { RootState } from '@/store'
 
@@ -43,6 +43,27 @@ export function DonateView() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdDonation, setCreatedDonation] = useState<any>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams) {
+      const reqId = searchParams.get('requirement_id')
+      const cat = searchParams.get('category')
+      const t = searchParams.get('title')
+      const city = searchParams.get('city')
+      const ngoName = searchParams.get('ngo_name')
+      const ngoId = searchParams.get('ngo_id')
+
+      if (cat && CATEGORIES.some(c => c.id === cat)) {
+        setCategory(cat)
+      }
+      if (t) setTitle(t)
+      if (city) setPickupCity(city)
+      if (reqId) {
+        setSelectedNgoReq({ id: reqId, ngo_id: ngoId, ngo_name: ngoName || 'Partner NGO', item_name: t || 'Requested Item' })
+      }
+    }
+  }, [searchParams])
 
   // Auth guard
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated)
@@ -71,7 +92,7 @@ export function DonateView() {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      const payload = {
+      const payload: any = {
         donation_type: category,
         title: title || `${CATEGORIES.find(c => c.id === category)?.name} Donation`,
         description,
@@ -81,6 +102,10 @@ export function DonateView() {
         pickup_address: pickupAddress,
         pickup_city: pickupCity,
         items: category !== 'money' ? [{ name: title || category, quantity: 1, unit: 'pack' }] : [],
+      }
+      if (selectedNgoReq?.id) {
+        payload.requirement_id = selectedNgoReq.id
+        if (selectedNgoReq.ngo_id) payload.ngo_id = selectedNgoReq.ngo_id
       }
       const { data } = await api.donations.create(payload)
       setCreatedDonation(data)

@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, Heart, Users, Star, ArrowUpRight, Bell, Loader2, Package, AlertCircle, RefreshCw } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { TrendingUp, Heart, Users, Star, ArrowUpRight, Bell, Loader2, Package, AlertCircle, RefreshCw, Check, X } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import toast from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 const EMPTY_CHART = [
@@ -40,6 +41,52 @@ export function DashboardView() {
     enabled: mounted && hasToken,
     staleTime: 60_000,
   })
+
+  const queryClient = useQueryClient()
+  const [actioningMatchId, setActioningMatchId] = useState<string | null>(null)
+  const [chatMatch, setChatMatch] = useState<any>(null)
+  const [chatMessageText, setChatMessageText] = useState('')
+  const [sendingMsg, setSendingMsg] = useState(false)
+
+  const { data: myMatchesData } = useQuery({
+    queryKey: ['my-matches'],
+    queryFn: () => api.ngoRequirements.myMatches().then((r: any) => r.data).catch(() => ({ items: [] })),
+    enabled: mounted && hasToken,
+    staleTime: 15_000,
+  })
+
+  // Fetch Urgent NGO Demands / Requirements
+  const { data: ngoRequirementsData } = useQuery({
+    queryKey: ['urgent-ngo-requirements'],
+    queryFn: () => api.ngoRequirements.list({ page_size: 6 }).then((r: any) => r.data).catch(() => ({ items: [] })),
+    enabled: mounted,
+    staleTime: 15_000,
+  })
+
+  const handleAcceptMatch = async (matchId: string) => {
+    setActioningMatchId(matchId)
+    try {
+      await api.ngoRequirements.acceptMatch(matchId)
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['my-donations'] })
+    } catch (err: any) {
+      alert(err.response?.data?.detail?.message || 'Error accepting match request')
+    } finally {
+      setActioningMatchId(null)
+    }
+  }
+
+  const handleRejectMatch = async (matchId: string) => {
+    setActioningMatchId(matchId)
+    try {
+      await api.ngoRequirements.rejectMatch(matchId)
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] })
+    } catch (err: any) {
+      alert(err.response?.data?.detail?.message || 'Error declining match request')
+    } finally {
+      setActioningMatchId(null)
+    }
+  }
 
   // Build chart from real donation data
   const chartData = React.useMemo(() => {
@@ -214,6 +261,126 @@ export function DashboardView() {
           </motion.div>
         </div>
 
+        {/* Incoming NGO Match Requests */}
+        {hasToken && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} className="card p-5 mt-6 border-emerald-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📩</span>
+                <h2 className="font-semibold text-foreground">Incoming NGO Match Requests</h2>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                {(myMatchesData?.items || []).length} Requests
+              </span>
+            </div>
+
+            {(myMatchesData?.items || []).length > 0 ? (
+              <div className="space-y-3">
+                {(myMatchesData.items as any[]).map((match: any) => (
+                  <div key={match.match_id} className="p-4 rounded-xl bg-muted/40 border border-border/60 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground">{match.ngo_name || 'Partner NGO'}</span>
+                        <span className="badge badge-primary text-[10px] uppercase">{match.status}</span>
+                      </div>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1">
+                        Requested contribution for: <span className="font-bold">{match.donation_title || match.donation_type}</span>
+                      </p>
+                      {match.request_message && (
+                        <p className="text-xs text-muted-foreground italic mt-1">&quot;{match.request_message}&quot;</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {(match.status === 'pending_donor' || match.status === 'requested') && (
+                        <>
+                          <button
+                            disabled={actioningMatchId === match.match_id}
+                            onClick={() => handleAcceptMatch(match.match_id)}
+                            className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Accept Request
+                          </button>
+                          <button
+                            disabled={actioningMatchId === match.match_id}
+                            onClick={() => handleRejectMatch(match.match_id)}
+                            className="px-3 py-1.5 text-xs rounded-xl border border-border bg-background text-foreground hover:bg-muted font-medium transition"
+                          >
+                            <X className="w-3.5 h-3.5 inline mr-1" /> Decline
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setChatMatch(match)}
+                        className="px-3 py-1.5 text-xs rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold hover:bg-emerald-500/20 transition flex items-center gap-1"
+                      >
+                        💬 Chat / Notes
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground text-xs">
+                No incoming NGO requests. When an NGO requests your donation, it will appear here in real time.
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Urgent NGO Demands & Requirements */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }} className="card p-5 mt-6 border-blue-500/30">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📋</span>
+              <div>
+                <h2 className="font-semibold text-foreground">Urgent NGO Demands & Requirements</h2>
+                <p className="text-xs text-muted-foreground">NGOs near you urgently requesting supplies for community support.</p>
+              </div>
+            </div>
+            <Link href="/donate" className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-500/20 text-primary-600 dark:text-primary-400 hover:underline">
+              Fulfill a Demand →
+            </Link>
+          </div>
+
+          {(ngoRequirementsData?.items || []).length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {(ngoRequirementsData.items as any[]).map((req: any) => (
+                <div key={req.id} className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col justify-between gap-3">
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm text-foreground">{req.ngo_name || 'Partner NGO'}</span>
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                        req.urgency === 'critical' || req.urgency === 'high'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                      }`}>
+                        {req.urgency}
+                      </span>
+                    </div>
+                    <p className="text-xs text-primary-600 dark:text-primary-400 font-semibold mt-1">
+                      Needs: {req.item_name} {req.quantity ? `(${req.quantity} ${req.unit || ''})` : ''}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Category: <span className="capitalize">{req.category}</span> · 📍 {req.city}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/donate?requirement_id=${req.id}&category=${encodeURIComponent(req.category)}&title=${encodeURIComponent(req.item_name)}&city=${encodeURIComponent(req.city)}&ngo_name=${encodeURIComponent(req.ngo_name || 'Partner NGO')}&ngo_id=${req.ngo_id}`}
+                    className="btn-primary text-xs py-1.5 text-center w-full"
+                  >
+                    Fulfill This Demand
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground text-xs">
+              No urgent NGO demands currently posted.
+            </div>
+          )}
+        </motion.div>
+
         {/* Recent Donations */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="card p-5 mt-6">
           <div className="flex items-center justify-between mb-4">
@@ -259,6 +426,67 @@ export function DashboardView() {
             </div>
           )}
         </motion.div>
+        {/* Direct Match Communication Modal */}
+        {chatMatch && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card p-6 max-w-md w-full">
+              <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                💬 Direct Donor-NGO Communication
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Coordinating with <strong className="text-foreground">{chatMatch.ngo_name || 'NGO Partner'}</strong> for &quot;{chatMatch.donation_title || chatMatch.donation_type}&quot;
+              </p>
+
+              <div className="space-y-3 mb-4 max-h-48 overflow-y-auto p-3 rounded-xl bg-muted/40 border border-border">
+                {chatMatch.request_message && (
+                  <div className="p-2.5 rounded-lg bg-card border border-border text-xs">
+                    <div className="font-semibold text-muted-foreground mb-0.5">NGO Note:</div>
+                    <p className="text-foreground">&quot;{chatMatch.request_message}&quot;</p>
+                  </div>
+                )}
+                {chatMatch.response_message && (
+                  <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs">
+                    <div className="font-semibold text-emerald-600 dark:text-emerald-400 mb-0.5">Your Response / Message:</div>
+                    <p className="text-foreground">&quot;{chatMatch.response_message}&quot;</p>
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                if (!chatMessageText.trim()) return
+                setSendingMsg(true)
+                try {
+                  await api.ngoRequirements.sendMatchMessage(chatMatch.match_id, { message: chatMessageText })
+                  toast.success('Message sent to NGO!')
+                  setChatMessageText('')
+                  setChatMatch(null)
+                  queryClient.invalidateQueries({ queryKey: ['my-matches'] })
+                } catch (err: any) {
+                  toast.error('Failed to send message.')
+                } finally {
+                  setSendingMsg(false)
+                }
+              }} className="space-y-3">
+                <textarea
+                  value={chatMessageText}
+                  onChange={(e) => setChatMessageText(e.target.value)}
+                  placeholder="Type pickup instructions, address details, or message for NGO..."
+                  rows={3}
+                  className="w-full bg-background border border-border rounded-xl p-3 text-sm resize-none"
+                  required
+                />
+
+                <div className="flex gap-2 justify-end">
+                  <button type="button" onClick={() => setChatMatch(null)} className="btn-secondary text-xs">Close</button>
+                  <button type="submit" disabled={sendingMsg} className="btn-primary text-xs">
+                    {sendingMsg ? 'Sending...' : 'Send Message'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
       </div>
     </div>
   )

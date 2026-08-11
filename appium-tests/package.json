@@ -1,0 +1,28 @@
+{
+  "name": "charityai-appium-tests",
+  "version": "1.0.0",
+  "description": "CharityAI Appium Android E2E Test Suite — 300+ real mobile test cases",
+  "main": "run-all.js",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:login": "node tests/login-tests.js",
+    "test:dashboard": "node tests/dashboard-tests.js",
+    "test:donation": "node tests/donation-tests.js",
+    "test:ngo": "node tests/ngo-tests.js",
+    "test:navigation": "node tests/navigation-tests.js",
+    "test:sync": "node tests/synchronization-tests.js",
+    "test:validation": "node tests/validation-tests.js",
+    "test:generated": "node tests/generated-tests.js",
+    "report": "node utils/excel-report.js"
+  },
+  "dependencies": {
+    "webdriverio": "^9.0.0",
+    "@wdio/appium-service": "^9.0.0",
+    "exceljs": "^4.4.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

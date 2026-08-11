@@ -17,12 +17,9 @@ import {
   LogIn,
   LayoutDashboard,
   HandHeart,
-  Building2,
   Users,
-  Briefcase,
   Search,
   CheckCircle2,
-  SlidersHorizontal,
   LogOut,
   Settings,
   Award,
@@ -35,11 +32,8 @@ import { cn } from '@/lib/utils'
 
 const navigation = [
   { href: '/donate', label: 'Donate', icon: HandHeart, description: 'Make a verified impact' },
-  { href: '/donations', label: 'Feed & Map', icon: SlidersHorizontal, description: 'Live tracking feed' },
-  { href: '/ngos', label: 'NGOs', icon: Building2, description: 'Verified partner organizations' },
   { href: '/volunteers', label: 'Volunteers', icon: Users, description: 'Task hub & leaderboards' },
   { href: '/receivers', label: 'Apply', icon: Heart, description: 'Request emergency help' },
-  { href: '/corporate', label: 'CSR Portal', icon: Briefcase, description: 'Corporate tax & CSR hub' },
 ]
 
 const sampleNotifications = [

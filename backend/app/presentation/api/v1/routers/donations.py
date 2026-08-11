@@ -41,6 +41,13 @@ from app.infrastructure.database.models.donations import (
     DonationType,
 )
 from app.infrastructure.database.models.users import User, UserRole
+from app.infrastructure.database.models.organizations import (
+    DonationMatch,
+    MatchStatus,
+    NGORequirement,
+    RequirementStatus,
+    OrganizationMember,
+)
 from app.infrastructure.database.session import get_db
 from app.presentation.api.v1.routers.websockets import manager
 from app.presentation.dependencies.auth import (
@@ -149,6 +156,50 @@ async def create_donation(
     )
     db.add(donation)
     await db.flush()
+
+    # If requirement_id is provided, auto-link match & notify target NGO
+    req_id_str = payload.get("requirement_id")
+    if req_id_str:
+        try:
+            req_id = uuid.UUID(req_id_str)
+            req_res = await db.execute(select(NGORequirement).where(NGORequirement.id == req_id, NGORequirement.is_deleted == False))
+            req = req_res.scalar_one_or_none()
+            if req:
+                donation.ngo_id = req.ngo_id
+                req.status = RequirementStatus.MATCHED
+
+                match = DonationMatch(
+                    donation_id=donation.id,
+                    requirement_id=req.id,
+                    ngo_id=req.ngo_id,
+                    donor_id=current_user.id,
+                    status=MatchStatus.PENDING_DONOR,
+                    request_message=f"Donor registered donation '{donation.title}' fulfilling your demand for '{req.item_name}'.",
+                    requested_at=datetime.now(UTC),
+                    created_by=str(current_user.id),
+                )
+                db.add(match)
+
+                members_res = await db.execute(
+                    select(OrganizationMember).where(
+                        OrganizationMember.organization_id == req.ngo_id,
+                    )
+                )
+                members = members_res.scalars().all()
+                for mem in members:
+                    notif = Notification(
+                        user_id=mem.user_id,
+                        title="New Donation Fulfilling Your Demand! 🎉",
+                        body=f"A donor registered a contribution '{donation.title}' fulfilling your demand for '{req.item_name}'. Log in to coordinate pickup.",
+                        notification_type="demand_fulfilled",
+                        channel="in_app",
+                        entity_type="donation_match",
+                        entity_id=str(match.id),
+                        priority="high",
+                    )
+                    db.add(notif)
+        except Exception as e:
+            pass
 
     # Add item details if provided
     items_input = payload.get("items", [])

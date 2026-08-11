@@ -32,10 +32,21 @@ export function NgoDashboardView() {
     enabled: mounted,
   })
 
+  // Fetch NGO's sent match requests & acceptance tracker
+  const { data: myMatches } = useQuery({
+    queryKey: ['ngo-sent-matches'],
+    queryFn: () => api.ngoRequirements.myMatches().then(r => r.data).catch(() => ({ items: [] })),
+    enabled: mounted,
+    refetchInterval: 10_000,
+  })
+
   // State for request modal
   const [selectedDonation, setSelectedDonation] = useState<any>(null)
   const [requestMessage, setRequestMessage] = useState('')
   const [selectedReqId, setSelectedReqId] = useState('')
+  const [chatMatch, setChatMatch] = useState<any>(null)
+  const [chatMessageText, setChatMessageText] = useState('')
+  const [sendingMsg, setSendingMsg] = useState(false)
 
   const requestMutation = useMutation({
     mutationFn: ({ reqId, donationId, message }: { reqId: string; donationId: string; message: string }) =>
@@ -206,6 +217,63 @@ export function NgoDashboardView() {
           </div>
         </div>
 
+        {/* Sent Match Requests & Acceptance Tracker */}
+        <div className="card p-6 mb-8 border-emerald-500/30 mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔄</span>
+              <h2 className="text-lg font-bold text-foreground">Sent Match Requests & Acceptance Tracker</h2>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              {(myMatches?.items || []).length} Total Requests
+            </span>
+          </div>
+
+          {(myMatches?.items || []).length > 0 ? (
+            <div className="grid md:grid-cols-2 gap-3">
+              {(myMatches.items as any[]).map((match: any) => (
+                <div key={match.match_id} className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="font-bold text-sm text-foreground">{match.donation_title || match.donation_type}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">Target NGO: {match.ngo_name || 'Your NGO'}</p>
+                    </div>
+                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                      match.status === 'accepted'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : match.status === 'rejected'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {match.status}
+                    </span>
+                  </div>
+
+                  {match.request_message && (
+                    <p className="text-xs text-muted-foreground italic">&quot;{match.request_message}&quot;</p>
+                  )}
+                  {match.response_message && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Donor response: &quot;{match.response_message}&quot;</p>
+                  )}
+
+                  <div className="mt-2 pt-2 border-t border-border/50 flex justify-end">
+                    <button
+                      onClick={() => setChatMatch(match)}
+                      className="px-3 py-1 text-xs rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold hover:bg-emerald-500/20 transition flex items-center gap-1"
+                    >
+                      💬 Chat / Notes
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground text-xs">
+              No match requests sent yet. Browse available donor contributions above and click Request!
+            </div>
+          )}
+        </div>
+
         {/* Modal for requesting a donation */}
         {selectedDonation && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -249,6 +317,67 @@ export function NgoDashboardView() {
                   <button type="button" onClick={() => setSelectedDonation(null)} className="btn-secondary text-xs">Cancel</button>
                   <button type="submit" disabled={requestMutation.isPending} className="btn-primary text-xs">
                     {requestMutation.isPending ? 'Sending...' : 'Send Match Request'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+        {/* NGO Direct Match Communication Modal */}
+        {chatMatch && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card p-6 max-w-md w-full">
+              <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                💬 Coordinate Pickup with Donor
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Donation: <strong className="text-foreground">{chatMatch.donation_title || chatMatch.donation_type}</strong>
+              </p>
+
+              <div className="space-y-3 mb-4 max-h-48 overflow-y-auto p-3 rounded-xl bg-muted/40 border border-border">
+                {chatMatch.request_message && (
+                  <div className="p-2.5 rounded-lg bg-card border border-border text-xs">
+                    <div className="font-semibold text-muted-foreground mb-0.5">Your NGO Message:</div>
+                    <p className="text-foreground">&quot;{chatMatch.request_message}&quot;</p>
+                  </div>
+                )}
+                {chatMatch.response_message && (
+                  <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs">
+                    <div className="font-semibold text-emerald-600 dark:text-emerald-400 mb-0.5">Donor Message:</div>
+                    <p className="text-foreground">&quot;{chatMatch.response_message}&quot;</p>
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                if (!chatMessageText.trim()) return
+                setSendingMsg(true)
+                try {
+                  await api.ngoRequirements.sendMatchMessage(chatMatch.match_id, { message: chatMessageText })
+                  toast.success('Message sent to Donor!')
+                  setChatMessageText('')
+                  setChatMatch(null)
+                  queryClient.invalidateQueries({ queryKey: ['ngo-sent-matches'] })
+                } catch (err: any) {
+                  toast.error('Failed to send message.')
+                } finally {
+                  setSendingMsg(false)
+                }
+              }} className="space-y-3">
+                <textarea
+                  value={chatMessageText}
+                  onChange={(e) => setChatMessageText(e.target.value)}
+                  placeholder="Type pickup time, vehicle number, or driver contact info..."
+                  rows={3}
+                  className="w-full bg-background border border-border rounded-xl p-3 text-sm resize-none"
+                  required
+                />
+
+                <div className="flex gap-2 justify-end">
+                  <button type="button" onClick={() => setChatMatch(null)} className="btn-secondary text-xs">Close</button>
+                  <button type="submit" disabled={sendingMsg} className="btn-primary text-xs">
+                    {sendingMsg ? 'Sending...' : 'Send Message'}
                   </button>
                 </div>
               </form>

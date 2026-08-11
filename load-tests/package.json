@@ -1,0 +1,22 @@
+{
+  "name": "charityai-load-tests",
+  "version": "1.0.0",
+  "description": "CharityAI Performance, Load, Stress & Endurance Test Infrastructure",
+  "main": "run-all.js",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:smoke": "node scenarios/api-load.js --scenario=smoke",
+    "test:load": "node scenarios/api-load.js --scenario=load",
+    "test:stress": "node scenarios/api-load.js --scenario=stress",
+    "test:spike": "node scenarios/api-load.js --scenario=spike",
+    "test:soak": "node scenarios/api-load.js --scenario=soak"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "exceljs": "^4.4.0",
+    "dotenv": "^16.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -4,9 +4,12 @@ Enables NGOs to create requirements and match with donor donations.
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import UTC, datetime
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import and_, func, or_, select
@@ -154,8 +157,8 @@ async def list_requirements(
     if status_filter:
         query = query.where(NGORequirement.status == status_filter)
     else:
-        # By default show open requirements
-        query = query.where(NGORequirement.status.in_([RequirementStatus.OPEN, RequirementStatus.PARTIALLY_MATCHED]))
+        # By default show open, partially matched, and matched requirements
+        query = query.where(NGORequirement.status.in_([RequirementStatus.OPEN, RequirementStatus.PARTIALLY_MATCHED, RequirementStatus.MATCHED]))
 
     from sqlalchemy import desc
     query = query.order_by(desc(NGORequirement.urgency), desc(NGORequirement.created_at))
@@ -310,6 +313,7 @@ async def request_donation(
 
     try:
         await db.commit()
+        logger.info(f"[DONATION_REQUEST] donation_id={donation_id} ngo_id={req.ngo_id} donor_id={donation.donor_id} match_id={match.id} status={match.status} committed=true")
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail={"message": "A match request already exists for this donation from your NGO."})
@@ -444,6 +448,7 @@ async def direct_request_donation(
 
     try:
         await db.commit()
+        logger.info(f"[DONATION_REQUEST] donation_id={donation_id} ngo_id={ngo_id} donor_id={donation.donor_id} match_id={match.id} status={match.status} committed=true")
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail={"message": "A match request already exists for this donation from your NGO."})
@@ -477,7 +482,7 @@ async def accept_match(
     if match.donor_id != current_user.id:
         raise HTTPException(status_code=403, detail={"message": "Only the donor can accept this request."})
 
-    if match.status != MatchStatus.PENDING_DONOR:
+    if match.status not in (MatchStatus.PENDING_DONOR, MatchStatus.REQUESTED):
         raise HTTPException(status_code=400, detail={"message": f"Cannot accept match in status: {match.status}."})
 
     match.status = MatchStatus.ACCEPTED
@@ -558,16 +563,36 @@ async def reject_match(
 
 
 # ── 8. GET /ngo-requirements/matches/my ──────────────────────────────────────
-@router.get("/matches/my", summary="Get match requests for current donor's donations")
+@router.get("/matches/my", summary="Get match requests for current user (Donor or NGO)")
 async def get_my_matches(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    member_result = await db.execute(
+        select(OrganizationMember).where(OrganizationMember.user_id == current_user.id)
+    )
+    member = member_result.scalar_one_or_none()
+
+    # Subquery for donations owned by current user
+    user_donations_stmt = select(Donation.id).where(Donation.donor_id == current_user.id)
+
+    if member:
+        match_filter = or_(
+            DonationMatch.donor_id == current_user.id,
+            DonationMatch.donation_id.in_(user_donations_stmt),
+            DonationMatch.ngo_id == member.organization_id,
+        )
+    else:
+        match_filter = or_(
+            DonationMatch.donor_id == current_user.id,
+            DonationMatch.donation_id.in_(user_donations_stmt),
+        )
+
     result = await db.execute(
         select(DonationMatch)
         .options(selectinload(DonationMatch.ngo))
         .where(
-            DonationMatch.donor_id == current_user.id,
+            match_filter,
             DonationMatch.is_deleted == False,
         )
         .order_by(DonationMatch.created_at.desc())
@@ -590,10 +615,13 @@ async def get_my_matches(
             "ngo_name": m.ngo.name if m.ngo else "Unknown NGO",
             "status": m.status,
             "request_message": m.request_message,
+            "response_message": m.response_message,
             "requested_at": m.requested_at.isoformat() if m.requested_at else None,
+            "responded_at": m.responded_at.isoformat() if m.responded_at else None,
             "created_at": m.created_at.isoformat() if m.created_at else None,
         })
 
+    logger.info(f"[MATCH_REQUESTS] user_id={current_user.id} count={len(items)} match_ids={[i['match_id'] for i in items]}")
     return {"total": len(items), "items": items}
 
 
@@ -691,6 +719,69 @@ def _serialize_requirement(r: NGORequirement, detailed: bool = False) -> dict:
             "description": r.description,
             "state": r.state,
             "address": r.address,
-            "needed_by": r.needed_by.isoformat() if r.needed_by else None,
+            "created_by_user_id": str(r.created_by_user_id) if r.created_by_user_id else None,
         })
     return data
+
+
+# ── 10. POST /ngo-requirements/matches/{match_id}/message ───────────────────
+@router.post("/matches/{match_id}/message", summary="Send a chat message for match communication")
+async def send_match_message(
+    match_id: uuid.UUID,
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    match_result = await db.execute(
+        select(DonationMatch).where(DonationMatch.id == match_id, DonationMatch.is_deleted == False)
+    )
+    match = match_result.scalar_one_or_none()
+    if not match:
+        raise HTTPException(status_code=404, detail={"message": "Match request not found."})
+
+    msg_text = payload.get("message", "").strip()
+    if not msg_text:
+        raise HTTPException(status_code=400, detail={"message": "Message content cannot be empty."})
+
+    # Check caller role
+    is_donor = match.donor_id == current_user.id
+    if is_donor:
+        match.response_message = msg_text
+        match.responded_at = datetime.now(UTC)
+    else:
+        match.request_message = msg_text
+        match.requested_at = datetime.now(UTC)
+
+    # Notify counterpart
+    recipient_id = match.donor_id if not is_donor else None
+    if is_donor:
+        # Notify NGO admin
+        mem_res = await db.execute(
+            select(OrganizationMember).where(OrganizationMember.organization_id == match.ngo_id)
+        )
+        mem = mem_res.scalars().first()
+        if mem:
+            recipient_id = mem.user_id
+
+    if recipient_id:
+        notif = Notification(
+            user_id=recipient_id,
+            title="New Communication Message 💬",
+            body=f"New message regarding match request: '{msg_text[:60]}...'",
+            notification_type="match_message",
+            channel="in_app",
+            entity_type="donation_match",
+            entity_id=str(match.id),
+            priority="high",
+        )
+        db.add(notif)
+
+    await db.commit()
+
+    return {
+        "match_id": str(match.id),
+        "status": match.status,
+        "request_message": match.request_message,
+        "response_message": match.response_message,
+        "message": "Message sent successfully.",
+    }

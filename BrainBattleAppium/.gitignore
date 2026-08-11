@@ -1,0 +1,4 @@
+node_modules/
+.wdio-results.jsonl
+*.log
+~$*.xlsx

@@ -1,0 +1,107 @@
+name: CharityAI — Web Selenium E2E Tests
+
+on:
+  push:
+    branches: [ main, develop, master ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      headless:
+        description: 'Run headless'
+        required: false
+        default: 'true'
+
+jobs:
+  selenium-e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: charity_user
+          POSTGRES_PASSWORD: charity_password
+          POSTGRES_DB: charity_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'selenium-tests/package.json'
+
+      - name: Setup Python for Backend
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Backend Dependencies & Start Server
+        env:
+          DATABASE_URL: postgresql+asyncpg://charity_user:charity_password@localhost:5432/charity_db
+          JWT_SECRET: super-secret-test-jwt-key-32-chars-long!!
+          ENVIRONMENT: test
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          alembic upgrade head || true
+          python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+
+      - name: Verify Backend Health
+        run: |
+          curl -f http://localhost:8000/health || exit 1
+
+      - name: Install Web Dependencies & Start Web Frontend
+        run: |
+          cd web
+          npm ci || npm install
+          npm run build || true
+          npm run dev &
+          sleep 10
+
+      - name: Install Selenium Test Dependencies
+        run: |
+          cd selenium-tests
+          npm ci || npm install
+
+      - name: Setup Chrome & ChromeDriver
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run Selenium E2E Test Suite
+        env:
+          WEB_BASE_URL: http://localhost:3000
+          API_BASE_URL: http://localhost:8000/api/v1
+          HEADLESS: true
+          SCREENSHOT_ON_FAIL: true
+          TEST_DONOR_EMAIL: donor@example.com
+          TEST_DONOR_PASSWORD: password123
+          TEST_NGO_EMAIL: ngo@example.com
+          TEST_NGO_PASSWORD: password123
+        run: |
+          cd selenium-tests
+          npm test
+
+      - name: Upload Excel Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-E2E-Excel-Report
+          path: |
+            selenium-tests/reports/Selenium-E2E-Test-Report*.xlsx
+            selenium-tests/reports/selenium-summary.json
+            selenium-tests/reports/screenshots/
+          retention-days: 30

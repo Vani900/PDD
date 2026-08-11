@@ -1,0 +1,24 @@
+{
+  "name": "charityai-security-tests",
+  "version": "1.0.0",
+  "description": "CharityAI API Security & Penetration Testing Suite — 300+ real security test cases",
+  "main": "run-all.js",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:auth": "node tests/auth-security-tests.js",
+    "test:injection": "node tests/injection-tests.js",
+    "test:access-control": "node tests/access-control-tests.js",
+    "test:headers": "node tests/security-headers-tests.js",
+    "test:rate-limit": "node tests/rate-limit-tests.js",
+    "test:data-exposure": "node tests/data-exposure-tests.js",
+    "test:generated": "node tests/generated-security-tests.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "exceljs": "^4.4.0",
+    "dotenv": "^16.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

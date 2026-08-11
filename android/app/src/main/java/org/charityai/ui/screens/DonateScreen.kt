@@ -293,6 +293,9 @@ fun DonateScreen(navController: NavController, sessionManager: SessionManager) {
                         return@Button
                     }
 
+                    val targetReqId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("requirement_id")
+                    val targetNgoId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("ngo_id")
+
                     val request = CreateDonationRequest(
                         donation_type = category,
                         title = if (title.isBlank()) "$category donation" else title.trim(),
@@ -301,7 +304,9 @@ fun DonateScreen(navController: NavController, sessionManager: SessionManager) {
                         currency = "INR",
                         pickup_city = if (pickupCity.isBlank()) "Bangalore" else pickupCity.trim(),
                         pickup_address = if (pickupAddress.isBlank()) null else pickupAddress.trim(),
-                        items = if (category != "money") listOf(DonationItemRequest(name = if (title.isBlank()) category else title.trim(), quantity = 1)) else null
+                        items = if (category != "money") listOf(DonationItemRequest(name = if (title.isBlank()) category else title.trim(), quantity = 1)) else null,
+                        ngo_id = targetNgoId,
+                        requirement_id = targetReqId
                     )
 
                     isLoading = true

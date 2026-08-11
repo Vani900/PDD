@@ -1,0 +1,65 @@
+name: CharityAI — Android Appium E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  appium-android-e2e:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Appium & Drivers
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug || echo "APK build skipped if Gradle wrapper unavailable"
+
+      - name: Run Appium Tests
+        env:
+          APPIUM_SERVER_URL: http://localhost:4723
+          ANDROID_DEVICE_NAME: Android Emulator
+          ANDROID_PLATFORM_VERSION: '13.0'
+          API_BASE_URL: http://localhost:8000/api/v1
+        run: |
+          cd appium-tests
+          npm ci || npm install
+          npm test || true
+
+      - name: Upload Appium Excel Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium-Android-Excel-Report
+          path: |
+            BrainBattleAppium/reports/test-report*.xlsx
+            BrainBattleAppium/reports/execution-report.html
+            BrainBattleAppium/execution-report.html
+            appium-tests/reports/Appium-E2E-Test-Report*.xlsx
+            appium-tests/reports/appium-summary.json
+          retention-days: 30

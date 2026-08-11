@@ -1,0 +1,13 @@
+{
+  "total": 303,
+  "pass": 0,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 303,
+  "criticalFails": 0,
+  "highFails": 0,
+  "passPercent": "0.00",
+  "duration": "0m 0s",
+  "startTime": "2026-08-10T10:10:51.886Z",
+  "endTime": "2026-08-10T10:10:51.970Z"
+}

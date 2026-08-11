@@ -1,0 +1,30 @@
+{
+  "name": "charityai-selenium-tests",
+  "version": "1.0.0",
+  "description": "CharityAI Selenium E2E Web Test Suite — 300+ real browser test cases",
+  "main": "run-all.js",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:login": "node tests/login-tests.js",
+    "test:registration": "node tests/registration-tests.js",
+    "test:dashboard": "node tests/dashboard-tests.js",
+    "test:donation": "node tests/donation-tests.js",
+    "test:ngo": "node tests/ngo-tests.js",
+    "test:profile": "node tests/profile-tests.js",
+    "test:request": "node tests/request-tests.js",
+    "test:navigation": "node tests/navigation-tests.js",
+    "test:validation": "node tests/validation-tests.js",
+    "test:generated": "node tests/generated-tests.js",
+    "report": "node utils/excel-report.js"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.27.0",
+    "exceljs": "^4.4.0",
+    "axios": "^1.7.0",
+    "chromedriver": "^133.0.0",
+    "dotenv": "^16.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

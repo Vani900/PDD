@@ -168,6 +168,12 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(migrate.router, prefix=prefix)
     app.include_router(websockets.router, prefix="/ws")
 
+    from fastapi.responses import RedirectResponse
+
+    @app.get("/docs", include_in_schema=False)
+    async def redirect_docs():
+        return RedirectResponse(url="/api/docs")
+
 
 def _register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(CharityAIException)

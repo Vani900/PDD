@@ -74,7 +74,8 @@ data class CreateDonationRequest(
     val pickup_address: String? = null,
     val items: List<DonationItemRequest>? = null,
     val ngo_id: String? = null,
-    val campaign_id: String? = null
+    val campaign_id: String? = null,
+    val requirement_id: String? = null
 )
 
 data class CreateDonationResponse(
@@ -105,6 +106,38 @@ data class DonationDto(
     val amount: Double?,
     val pickup_city: String?,
     val created_at: String?
+)
+
+data class DonationItemDetailDto(
+    val name: String,
+    val quantity: Double? = 1.0,
+    val unit: String? = "pack",
+    val condition: String? = "new"
+)
+
+data class DonationStatusHistoryDto(
+    val from: String? = null,
+    val to: String? = null,
+    val at: String? = null,
+    val notes: String? = null
+)
+
+data class DonationDetailDto(
+    val id: String,
+    val title: String?,
+    val donation_type: String,
+    val status: String,
+    val tracking_number: String,
+    val amount: Double? = null,
+    val currency: String? = "INR",
+    val pickup_city: String? = null,
+    val pickup_address: String? = null,
+    val description: String? = null,
+    val scheduled_pickup_at: String? = null,
+    val qr_verified: Boolean = false,
+    val items: List<DonationItemDetailDto> = emptyList(),
+    val status_history: List<DonationStatusHistoryDto> = emptyList(),
+    val created_at: String? = null
 )
 
 data class ListDonationsResponse(
@@ -156,6 +189,26 @@ data class NgoRequirementDto(
 data class ListNgoRequirementsResponse(
     val total: Int,
     val items: List<NgoRequirementDto>
+)
+
+data class DonationMatchDto(
+    val match_id: String,
+    val donation_id: String,
+    val donation_title: String?,
+    val donation_type: String?,
+    val ngo_id: String,
+    val ngo_name: String?,
+    val status: String,
+    val request_message: String?,
+    val response_message: String? = null,
+    val requested_at: String?,
+    val responded_at: String? = null,
+    val created_at: String?
+)
+
+data class ListDonationMatchesResponse(
+    val total: Int,
+    val items: List<DonationMatchDto>
 )
 
 // ── Receiver & Volunteer Data Classes ────────────────────────────────────────
@@ -228,6 +281,12 @@ interface CharityAIApiService {
         @Query("page") page: Int = 1
     ): Response<ListDonationsResponse>
 
+    @GET("donations/{id}")
+    suspend fun getDonationDetail(
+        @Header("Authorization") token: String?,
+        @Path("id") id: String
+    ): Response<DonationDetailDto>
+
     @POST("donations")
     suspend fun createDonation(
         @Header("Authorization") token: String,
@@ -272,6 +331,32 @@ interface CharityAIApiService {
         @Header("Authorization") token: String,
         @Path("donationId") donationId: String,
         @Body payload: RequestDonationPayload
+    ): Response<GenericActionResponse>
+
+    @GET("ngo-requirements/matches/my")
+    suspend fun getMyMatches(
+        @Header("Authorization") token: String
+    ): Response<ListDonationMatchesResponse>
+
+    @POST("ngo-requirements/matches/{matchId}/accept")
+    suspend fun acceptMatch(
+        @Header("Authorization") token: String,
+        @Path("matchId") matchId: String,
+        @Body payload: Map<String, String> = emptyMap()
+    ): Response<GenericActionResponse>
+
+    @POST("ngo-requirements/matches/{matchId}/reject")
+    suspend fun rejectMatch(
+        @Header("Authorization") token: String,
+        @Path("matchId") matchId: String,
+        @Body payload: Map<String, String> = emptyMap()
+    ): Response<GenericActionResponse>
+
+    @POST("ngo-requirements/matches/{matchId}/message")
+    suspend fun sendMatchMessage(
+        @Header("Authorization") token: String,
+        @Path("matchId") matchId: String,
+        @Body payload: Map<String, String>
     ): Response<GenericActionResponse>
 
     @GET("receivers/help-requests")

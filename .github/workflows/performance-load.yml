@@ -1,0 +1,77 @@
+name: CharityAI — Performance & Load Testing
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 3 * * 0' # Run weekly on Sunday at 3 AM UTC
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Load test scenario (smoke, load, stress, spike, soak)'
+        required: false
+        default: 'load'
+
+jobs:
+  performance-load-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: charity_user
+          POSTGRES_PASSWORD: charity_password
+          POSTGRES_DB: charity_db
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Start Backend Service
+        env:
+          DATABASE_URL: postgresql+asyncpg://charity_user:charity_password@localhost:5432/charity_db
+          JWT_SECRET: super-secret-load-test-key-32-chars-long!
+          ENVIRONMENT: test
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+
+      - name: Install Load Test Dependencies
+        run: |
+          cd load-tests
+          npm ci || npm install
+
+      - name: Run Load Testing Suite
+        env:
+          API_BASE_URL: http://localhost:8000/api/v1
+          SLA_P95_MS: 500
+          SLA_MAX_ERROR_RATE: 1.0
+          SLA_MIN_RPS: 50
+        run: |
+          cd load-tests
+          npm test -- --scenario=${{ github.event.inputs.scenario || 'smoke' }}
+
+      - name: Upload Performance Excel Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Performance-Load-Excel-Report
+          path: |
+            load-tests/reports/Load-Test-Report*.xlsx
+            load-tests/reports/load-summary.json
+          retention-days: 30
